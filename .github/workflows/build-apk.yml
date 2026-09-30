@@ -1,48 +1,43 @@
 name: Build Android APK
 
 on:
-  workflow_dispatch: # Allows manual triggering from the Actions tab
+  workflow_dispatch:
   push:
     branches:
-      - "main"
-      - "arena/01a0ee09-anime-s"
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: npm
 
-      - name: Setup Java JDK
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+          distribution: temurin
+          java-version: 17
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Expo Prebuild (Generate Android native project)
+      - name: Expo prebuild
         run: npx expo prebuild -p android --clean
 
-      - name: Build Android APK (Debug)
+      - name: Build APK
         working-directory: android
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --no-daemon
 
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: anime-alc-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: AnimAlc-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk⁶
