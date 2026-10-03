@@ -22,13 +22,15 @@ const server = spawn(process.execPath, [join(here, '..', 'server', 'watch-togeth
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 
+const out = (line) => process.stdout.write(`${line}\n`);
+
 let failures = 0;
 function check(label, condition) {
   if (condition) {
-    console.log(`  ok   ${label}`);
+    out(`  ok   ${label}`);
   } else {
     failures += 1;
-    console.log(`  FAIL ${label}`);
+    out(`  FAIL ${label}`);
   }
 }
 
@@ -141,10 +143,10 @@ run()
   .then(() => {
     server.kill('SIGTERM');
     if (failures > 0) {
-      console.log(`\n${failures} check(s) failed`);
+      out(`\n${failures} check(s) failed`);
       process.exit(1);
     }
-    console.log('\nWatch Together relay verified');
+    out('\nWatch Together relay verified');
     process.exit(0);
   })
   .catch((error) => {
