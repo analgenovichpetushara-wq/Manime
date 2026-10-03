@@ -38,7 +38,15 @@ export function applySettingsToManager(): void {
   const instance = getProviderManager();
   const disabled = new Set(state.disabledProviderIds);
   for (const descriptor of PROVIDER_DESCRIPTORS) {
-    if (!descriptor.enabledByDefault || descriptor.capabilities.publicApi === false) disabled.add(descriptor.id);
+    if (!descriptor.enabledByDefault) {
+      disabled.add(descriptor.id);
+      continue;
+    }
+    // Credential-based sources stay off until they are configured, so the app
+    // never shows a provider that can only fail.
+    if (descriptor.capabilities.publicApi === false && !(descriptor.isConfigured?.() ?? false)) {
+      disabled.add(descriptor.id);
+    }
   }
   instance.setDisabled([...disabled]);
 }
@@ -105,7 +113,12 @@ export async function fetchEpisodes(
   preferredProviderId?: string,
 ): Promise<{ episodes: Episode[]; providerId: string; failures: { providerId: string; errorCode: string }[] }> {
   const instance = getProviderManager();
+  const cached = await titleCache.getEpisodes(title.id);
+  if (cached?.length) {
+    return { episodes: cached, providerId: title.providerId, failures: [] };
+  }
   const outcome = await instance.getEpisodes(title, preferredProviderId);
+  if (outcome.episodes.length) await titleCache.rememberEpisodes(title.id, outcome.episodes);
   return {
     episodes: outcome.episodes,
     providerId: outcome.providerId,
@@ -115,7 +128,10 @@ export async function fetchEpisodes(
 
 export async function fetchVoiceovers(title: AnimeTitle, preferredProviderId?: string): Promise<Voiceover[]> {
   const instance = getProviderManager();
+  const cached = await titleCache.getVoiceovers(title.id);
+  if (cached?.length) return cached;
   const outcome = await instance.getVoiceovers(title, preferredProviderId);
+  if (outcome.voiceovers.length) await titleCache.rememberVoiceovers(title.id, outcome.voiceovers);
   return outcome.voiceovers;
 }
 

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, AppState, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import { VideoView, type VideoView as VideoViewType } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
@@ -424,11 +424,26 @@ export function PlayerScreen() {
             {busy ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <ErrorView
-                messageKey={playbackError ? 'errors.stream_unavailable' : errorMessageKey}
-                detail={error?.detail}
-                onRetry={() => setAttempts((value) => value + 1)}
-              />
+              <>
+                <ErrorView
+                  messageKey={playbackError ? 'errors.stream_unavailable' : errorMessageKey}
+                  detail={error?.detail}
+                  onRetry={() => setAttempts((value) => value + 1)}
+                />
+                {/* Sources that publish an official player page instead of a media
+                    URL (Kodik) stay playable through the provider's own player. */}
+                {currentEpisode?.playerUrl ? (
+                  <Button
+                    label={t('player.openSourcePlayer')}
+                    variant="secondary"
+                    onPress={() => {
+                      const url = currentEpisode.playerUrl;
+                      if (url) void Linking.openURL(url);
+                    }}
+                    testID="player-open-source"
+                  />
+                ) : null}
+              </>
             )}
           </View>
         )}

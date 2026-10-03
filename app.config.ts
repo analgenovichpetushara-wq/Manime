@@ -58,7 +58,8 @@ const config: ExpoConfig = {
   ],
   extra: {
     watchTogetherUrl: process.env.EXPO_PUBLIC_WATCH_TOGETHER_URL ?? '',
-    anilibriaBaseUrl: process.env.EXPO_PUBLIC_ANILIBRIA_BASE_URL ?? 'https://api.anilibria.app/api/v1',
+    kodikBaseUrl: process.env.EXPO_PUBLIC_KODIK_BASE_URL ?? 'https://kodik-api.com',
+    kodikGatewayUrl: process.env.EXPO_PUBLIC_KODIK_GATEWAY_URL ?? '',
     anime365BaseUrl: process.env.EXPO_PUBLIC_ANIME365_BASE_URL ?? 'https://smotret-anime.online/api',
     shikimoriBaseUrl: process.env.EXPO_PUBLIC_SHIKIMORI_BASE_URL ?? 'https://shikimori.io/api',
     environment: process.env.EXPO_PUBLIC_ENV ?? 'production',

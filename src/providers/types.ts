@@ -34,6 +34,12 @@ export interface ProviderDescriptor {
   capabilities: ProviderCapabilities;
   homepage: string;
   enabledByDefault: boolean;
+  /**
+   * For credential-based sources: true when the required configuration (token
+   * or gateway) is present. Providers that answer `false` are disabled instead
+   * of failing on every request.
+   */
+  isConfigured?: () => boolean;
 }
 
 export interface StreamRequestOptions {

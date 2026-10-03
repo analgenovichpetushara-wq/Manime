@@ -22,7 +22,9 @@ import { customThemesToPresets } from '@/theme/customThemes';
 import { findPreset, THEME_PRESETS } from '@/theme/presets';
 import { useAchievementsStore } from '@/store/achievementsStore';
 import { syncAchievements } from '@/services/achievementService';
-import { applySettingsToManager } from '@/services/providerService';
+import { applySettingsToManager, searchTitles } from '@/services/providerService';
+import { migrateRetiredProviders } from '@/services/providerMigration';
+import { EMPTY_FILTERS } from '@/data/models/anime';
 import { appLogger } from '@/core/logging/logger';
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -106,6 +108,15 @@ export default function App() {
         appLogger.error('hydration failed', { error: String(error) });
       }
       applySettingsToManager();
+      // Local history from removed providers is re-attached (never deleted) on
+      // first launch after the migration.
+      void migrateRetiredProviders({
+        searchTitle: async (titleName) => {
+          const outcome = await searchTitles({ ...EMPTY_FILTERS, query: titleName }, 1);
+          const match = outcome.titles[0];
+          return match ? { titleId: match.id, providerId: match.providerId, refId: match.refId } : undefined;
+        },
+      });
       if (!cancelled) setReady(true);
     })();
     return () => {

@@ -5,6 +5,8 @@
 export type AppErrorCode =
   | 'NETWORK_UNAVAILABLE'
   | 'TIMEOUT'
+  | 'AUTHENTICATION_REQUIRED'
+  | 'RATE_LIMITED'
   | 'HTTP_ERROR'
   | 'INVALID_JSON'
   | 'INVALID_PAYLOAD'
@@ -32,6 +34,8 @@ export interface AppErrorInit {
 const RETRYABLE: Record<AppErrorCode, boolean> = {
   NETWORK_UNAVAILABLE: true,
   TIMEOUT: true,
+  AUTHENTICATION_REQUIRED: false,
+  RATE_LIMITED: true,
   HTTP_ERROR: true,
   INVALID_JSON: true,
   INVALID_PAYLOAD: true,

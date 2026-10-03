@@ -16,6 +16,8 @@ export interface WatchProgress {
   updatedAt: number;
   voiceoverId?: string;
   qualityId?: string;
+  /** Set when the entry came from a provider that has since been removed. */
+  legacyProviderId?: string;
 }
 
 export interface CumulativeWatchStats {

@@ -70,6 +70,11 @@ export interface Episode {
   outroSkip?: { start: number; end: number };
   isAvailable: boolean;
   voiceoverRefId?: string;
+  /**
+   * Official provider player page for sources that expose an embed player
+   * instead of a media URL (Kodik). Never used as a stream source.
+   */
+  playerUrl?: string;
 }
 
 export interface Voiceover {

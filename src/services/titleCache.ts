@@ -1,5 +1,5 @@
 import { TtlCache, CacheTtl } from '@/core/cache/cache';
-import type { AnimeTitle } from '@/data/models/anime';
+import type { AnimeTitle, Episode, Voiceover } from '@/data/models/anime';
 
 /**
  * Persistent catalogue cache.
@@ -10,6 +10,14 @@ class TitleCacheService {
   private readonly searchCache = new TtlCache<{ ids: string[]; at: number }>({
     namespace: 'cache:search',
     ttlMs: CacheTtl.search,
+  });
+  private readonly episodeCache = new TtlCache<Episode[]>({
+    namespace: 'cache:episodes',
+    ttlMs: CacheTtl.episodes,
+  });
+  private readonly voiceoverCache = new TtlCache<Voiceover[]>({
+    namespace: 'cache:voiceovers',
+    ttlMs: CacheTtl.episodes,
   });
   private readonly index = new Map<string, AnimeTitle>();
 
@@ -49,18 +57,48 @@ class TitleCacheService {
     return this.index.get(titleId);
   }
 
+  /** Normalised episode lists (30 min TTL — short enough to pick up new episodes). */
+  async rememberEpisodes(titleId: string, episodes: Episode[]): Promise<void> {
+    await this.episodeCache.set(titleId, episodes);
+  }
+
+  async getEpisodes(titleId: string): Promise<Episode[] | undefined> {
+    return this.episodeCache.get(titleId);
+  }
+
+  /** Translations/voiceovers a provider reports for a title. */
+  async rememberVoiceovers(titleId: string, voiceovers: Voiceover[]): Promise<void> {
+    await this.voiceoverCache.set(titleId, voiceovers);
+  }
+
+  async getVoiceovers(titleId: string): Promise<Voiceover[] | undefined> {
+    return this.voiceoverCache.get(titleId);
+  }
+
   async clear(): Promise<void> {
     this.index.clear();
     await this.titleCache.clear();
     await this.searchCache.clear();
+    await this.episodeCache.clear();
+    await this.voiceoverCache.clear();
   }
 
   async prune(): Promise<number> {
-    return (await this.titleCache.prune()) + (await this.searchCache.prune());
+    return (
+      (await this.titleCache.prune()) +
+      (await this.searchCache.prune()) +
+      (await this.episodeCache.prune()) +
+      (await this.voiceoverCache.prune())
+    );
   }
 
   async size(): Promise<number> {
-    return (await this.titleCache.size()) + (await this.searchCache.size());
+    return (
+      (await this.titleCache.size()) +
+      (await this.searchCache.size()) +
+      (await this.episodeCache.size()) +
+      (await this.voiceoverCache.size())
+    );
   }
 }
 

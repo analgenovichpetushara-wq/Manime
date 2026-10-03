@@ -18,7 +18,8 @@
     "export:android": "expo export --platform android --output-dir dist/android",
     "export:ios": "expo export --platform ios --output-dir dist/ios",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run server:smoke && npm run export:android && npm run export:ios",
-    "server:smoke": "node scripts/watch-together-smoke.mjs"
+    "server:smoke": "node scripts/watch-together-smoke.mjs",
+    "server:kodik": "node server/kodik-gateway.mjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
