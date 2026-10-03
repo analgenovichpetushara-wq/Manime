@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import { createContext, useContext } from 'react';
 import type { AnimeTitle } from '@/data/models/anime';
 import type { ToastMessage } from '@/ui/Toast';
 

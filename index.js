@@ -9,7 +9,6 @@ void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 // Use require intentionally here: unlike a static ESM import, this executes
 // only after the splash bootstrap above.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const App = require('./src/App').default;
 
 registerRootComponent(App);
