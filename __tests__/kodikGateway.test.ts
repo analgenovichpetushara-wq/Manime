@@ -147,6 +147,16 @@ describe('Kodik gateway (real process)', () => {
 
     expect((await httpGet(`${gateway.origin}/search?limit=5`)).status).toBe(400);
     expect((await httpGet(`${gateway.origin}/download?url=http://example.invalid`)).status).toBe(404);
+
+    // /get-player is reachable, but only with a target, and only its own params.
+    kodik.calls.length = 0;
+    expect((await httpGet(`${gateway.origin}/get-player`)).status).toBe(400);
+    const player = await httpGet(`${gateway.origin}/get-player?ID=serial-42758&hasPlayer=true&token=leak`);
+    expect(player.status).toBe(200);
+    expect(kodik.calls[0]?.url).toContain('/get-player?');
+    expect(kodik.calls[0]?.query.get('ID')).toBe('serial-42758');
+    expect(kodik.calls[0]?.query.get('hasPlayer')).toBe('true');
+    expect(kodik.calls[0]?.query.get('token')).toBe('super-secret-token');
   });
 
   it('maps a Kodik token failure onto 401 AUTHENTICATION_REQUIRED', async () => {

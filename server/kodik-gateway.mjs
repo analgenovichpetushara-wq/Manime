@@ -7,7 +7,8 @@
  * token stays server-side.
  *
  * It is NOT an open proxy:
- *   · only four documented Kodik endpoints are reachable,
+ *   · only the documented Kodik endpoints AnimAlc uses are reachable
+ *     (/search, /list, /get-player),
  *   · query parameters are whitelisted and validated,
  *   · the token is injected server-side and never echoed,
  *   · per-client rate limiting is enforced,
@@ -48,6 +49,7 @@ const PARAM_WHITELIST = {
     'with_episodes',
     'with_episodes_data',
   ],
+  '/get-player': ['title', 'ID', 'url', 'hasPlayer'],
   '/list': ['types', 'year', 'anime_kind', 'anime_status', 'genres', 'anime_genres', 'sort', 'order', 'limit', 'with_material_data', 'with_seasons', 'with_episodes', 'with_episodes_data'],
 };
 
@@ -82,6 +84,10 @@ export function sanitizeQuery(searchParams, endpoint) {
     if (key === 'year' || key === 'season') {
       const value = Number.parseInt(raw, 10);
       if (Number.isFinite(value)) out.set(key, String(value));
+      continue;
+    }
+    if (key === 'hasPlayer') {
+      out.set(key, raw === 'true' || raw === '1' ? 'true' : 'false');
       continue;
     }
     if (key.startsWith('with_')) {
@@ -216,6 +222,19 @@ export function createKodikGateway(options = {}) {
         return;
       }
       const result = await upstream(url.pathname, search);
+      res.writeHead(result.status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result.body));
+      return;
+    }
+
+    if (url.pathname === '/get-player') {
+      const hasTarget = url.searchParams.has('title') || url.searchParams.has('ID') || url.searchParams.has('url');
+      if (!hasTarget) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: { code: 'BAD_REQUEST', message: 'get-player needs title, ID or url' } }));
+        return;
+      }
+      const result = await upstream('/get-player', search);
       res.writeHead(result.status, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(result.body));
       return;

@@ -14,7 +14,7 @@ UI → providerService → ProviderManager → provider implementations → HTTP
 
 | Provider | Registered | Public API | search | metadata | episodes | voiceovers | qualities | streams |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Kodik** | yes (primary) | no — partner token | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ (embed link only) |
+| **Kodik** | yes (primary) | no — partner token | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ media URL — official embed player instead |
 | Anime 365 (smotret-anime) | yes | yes | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ (login-gated) |
 | Shikimori | yes | yes | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 
@@ -39,18 +39,25 @@ ids, to re-attach the user's local history (see *Data migration*).
     episodes, each with the official embed player link.
   * `/search?id=…&limit=100` — one result per translation, which is how the
     voiceover list for a material is derived.
+  * `/get-player` — `{found, allowed, quality, translation, link}`: the
+    documented way to ask Kodik for a title's player link (`title`, `ID`, `url`,
+    `hasPlayer`).
 * Response fields mapped: `id`, `type`, `link`, `title`, `title_orig`,
   `other_title`, `translation{id,title,type}`, `year`, `last_season`,
   `last_episode`, `episodes_count`, `shikimori_id`, `quality`, `screenshots`,
   `seasons{}`, `material_data{description,genres,anime_kind,anime_status,duration,rating_mpaa,poster,anime_studios}`.
   Fields Kodik does not publish (score, votes) stay `undefined` — they are never
   invented.
-* **Streams:** Kodik's documented API returns an embed player link
-  (`//kodik.info/serial/{id}/{hash}/720p`), not a media URL. The direct HLS
+* **Playback:** Kodik's documented API returns an embed player link
+  (`//kodik.info/serial/{id}/{hash}/720p`), never a media URL. AnimAlc plays it
+  the way Kodik intends — inside the provider's own player
+  (`EmbedPlayerScreen`, `react-native-webview`), reachable from the player
+  screen through *Open in the source player*. The link comes from the episode
+  (`with_episodes`) or from `/get-player`.
+* `getStream()` still throws `STREAM_UNAVAILABLE` for Kodik: the direct HLS
   manifests are produced by the player's obfuscated internal endpoint, which
-  AnimAlc does not call. `getStream()` therefore throws `STREAM_UNAVAILABLE` and
-  the episode keeps `playerUrl`, so the player offers *Open in the source
-  player*. Nothing is bypassed, and nothing is faked.
+  AnimAlc does not call. The native player keeps serving sources that publish
+  real HLS/MP4 URLs. Nothing is bypassed, and nothing is faked.
 * Qualities are derived from the real `quality` label (`WEB-DLRip 720p` → 720p)
   and the player link suffix — not from a hardcoded list.
 
@@ -65,8 +72,8 @@ EXPO_PUBLIC_KODIK_GATEWAY_URL=https://gateway.example.invalid
 
 The gateway is deliberately narrow:
 
-* routes: `/health`, `/search`, `/list`, `/material?id=`, `/translations?id=`;
-  everything else is a 404 — it is not an open proxy;
+* routes: `/health`, `/search`, `/list`, `/material?id=`, `/translations?id=`,
+  `/get-player`; everything else is a 404 — it is not an open proxy;
 * query parameters are whitelisted per route and validated (`limit` ≤ 100,
   `with_*` coerced to booleans, oversize values dropped, client `token`
   ignored);

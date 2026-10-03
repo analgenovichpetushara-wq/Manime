@@ -21,6 +21,8 @@ export type RootStackParamList = {
     roomCode?: string;
     roomRole?: 'host' | 'guest';
   };
+  /** Official embed player of a source that publishes a player link (Kodik). */
+  EmbedPlayer: { url: string; title?: string };
   WatchTogether: undefined;
   Room: { roomId: string; code: string; isHost: boolean; title?: AnimeTitle; titleId?: string; episodeId?: string };
   Achievements: undefined;

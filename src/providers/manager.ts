@@ -385,6 +385,27 @@ export class ProviderManager {
     });
   }
 
+  /** True when any provider serving this title can hand out an official player link. */
+  supportsEmbedLink(title: AnimeTitle, preferredProviderId?: string): boolean {
+    return this.orderedRefsFor(title, preferredProviderId).some((provider) => typeof provider.getEmbedLink === 'function');
+  }
+
+  /** Official embed player link for a title, from the first provider that has one. */
+  async getEmbedLink(title: AnimeTitle, preferredProviderId?: string): Promise<string | undefined> {
+    const candidates = this.orderedRefsFor(title, preferredProviderId).filter(
+      (provider) => typeof provider.getEmbedLink === 'function',
+    );
+    for (const provider of candidates) {
+      try {
+        const link = await provider.getEmbedLink?.(title);
+        if (link) return link;
+      } catch (error) {
+        this.recordFailure(provider.descriptor.id, error);
+      }
+    }
+    return undefined;
+  }
+
   async getGenres(): Promise<string[]> {
     const aggregate = new Set<string>();
     await mapLimit(this.list(), this.options.concurrency, async (provider) => {

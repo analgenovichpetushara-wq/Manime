@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, AppState, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useRoute, type RouteProp } from '@react-navigation/native';
 import { VideoView, type VideoView as VideoViewType } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +15,7 @@ import { useAppNavigation } from '@/navigation/useAppNavigation';
 import { useAppShell } from '@/navigation/AppShell';
 import type { RootStackParamList } from '@/navigation/types';
 import type { Episode, Voiceover } from '@/data/models/anime';
-import { fetchEpisodes, fetchVoiceovers, describeError } from '@/services/providerService';
+import { fetchEpisodes, fetchVoiceovers, fetchEmbedLink, supportsEmbedLink, describeError } from '@/services/providerService';
 import {
   persistProgress,
   preparePlayback,
@@ -401,6 +401,20 @@ export function PlayerScreen() {
     return { start, end };
   }, [plan, settings.skipIntro, synced, onScreenPosition]);
 
+  /**
+   * Sources that publish an official player link (Kodik) are played inside the
+   * provider's own player; the episode link wins, otherwise the title is
+   * resolved through the documented /get-player endpoint.
+   */
+  const openSourcePlayer = useCallback(async () => {
+    const url = currentEpisode?.playerUrl ?? (await fetchEmbedLink(title));
+    if (!url) {
+      showToast({ titleKey: 'errors.stream_unavailable', tone: 'default' });
+      return;
+    }
+    navigation.navigate('EmbedPlayer', { url, title: title.title });
+  }, [currentEpisode?.playerUrl, title, navigation, showToast]);
+
   const errorMessageKey = error?.messageKey ?? 'errors.stream_unavailable';
   const busy = loading || status === 'loading';
   const playbackError = status === 'error';
@@ -432,13 +446,12 @@ export function PlayerScreen() {
                 />
                 {/* Sources that publish an official player page instead of a media
                     URL (Kodik) stay playable through the provider's own player. */}
-                {currentEpisode?.playerUrl ? (
+                {currentEpisode?.playerUrl || supportsEmbedLink(title) ? (
                   <Button
                     label={t('player.openSourcePlayer')}
                     variant="secondary"
                     onPress={() => {
-                      const url = currentEpisode.playerUrl;
-                      if (url) void Linking.openURL(url);
+                      void openSourcePlayer();
                     }}
                     testID="player-open-source"
                   />

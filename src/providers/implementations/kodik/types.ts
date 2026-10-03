@@ -100,6 +100,18 @@ export interface KodikListResponse<T> {
   results: T[];
 }
 
+/**
+ * `/get-player` response — the documented way to ask Kodik for the player of a
+ * title. It returns an embed link, never a media file.
+ */
+export interface KodikPlayerResponse {
+  found: boolean;
+  allowed: number;
+  quality?: string | null;
+  translation?: string | null;
+  link?: string | null;
+}
+
 /** Error body: Kodik answers with `{"error": "…"}` (e.g. an invalid token). */
 export interface KodikErrorBody {
   error: string;

@@ -481,6 +481,7 @@
   "player.autoNext": "Автовоспроизведение следующей",
   "player.backward": "Назад на {seconds} с",
   "player.buffering": "Буферизация…",
+  "player.embedTitle": "Плеер источника",
   "player.end": "Воспроизведение завершено",
   "player.episodePending": "Серия загружается",
   "player.episodes": "Серии",

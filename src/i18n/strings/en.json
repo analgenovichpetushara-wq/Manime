@@ -481,6 +481,7 @@
   "player.autoNext": "Autoplay next",
   "player.backward": "Back {seconds}s",
   "player.buffering": "Buffering…",
+  "player.embedTitle": "Source player",
   "player.end": "Playback finished",
   "player.episodePending": "Loading episode",
   "player.episodes": "Episodes",

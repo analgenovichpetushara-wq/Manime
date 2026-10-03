@@ -4,6 +4,7 @@ import { httpJson } from '@/core/http/httpClient';
 import type {
   KodikErrorBody,
   KodikListResponse,
+  KodikPlayerResponse,
   KodikQueryParams,
   KodikRelease,
 } from '@/providers/implementations/kodik/types';
@@ -14,6 +15,7 @@ export const KODIK_ID = 'kodik';
 export const KODIK_ENDPOINTS = {
   search: '/search',
   list: '/list',
+  getPlayer: '/get-player',
 } as const;
 
 /** Material types AnimAlc is interested in (documented Kodik values). */
@@ -166,6 +168,54 @@ export class KodikApi {
       with_material_data: true,
     });
     return response.results.find((release) => release.id === id) ?? response.results[0] ?? null;
+  }
+
+  /**
+   * `/get-player` — asks Kodik for the official player of a title.
+   * Answered with `{found, allowed, quality, translation, link}`.
+   */
+  async getPlayer(params: { title?: string; id?: string; url?: string; hasPlayer?: boolean }): Promise<KodikPlayerResponse> {
+    this.assertConfigured();
+    const query: Record<string, string | number | boolean | undefined> = { ...params };
+    if (params.id !== undefined) {
+      query.ID = params.id;
+      delete query.id;
+    }
+    if (params.hasPlayer !== undefined) query.hasPlayer = params.hasPlayer;
+    if (this.token) query.token = this.token;
+
+    let response;
+    try {
+      response = await httpJson<KodikPlayerResponse | KodikErrorBody>(this.baseUrl, KODIK_ENDPOINTS.getPlayer, {
+        query,
+        providerId: KODIK_ID,
+        timeoutMs: this.timeoutMs,
+        attempts: 2,
+      });
+    } catch (error) {
+      if (error instanceof AppError && (error.status === 401 || error.status === 403)) {
+        throw new AppError({
+          code: 'AUTHENTICATION_REQUIRED',
+          providerId: KODIK_ID,
+          message: 'Kodik rejected the API token',
+          status: error.status,
+          cause: error,
+        });
+      }
+      throw error;
+    }
+
+    const body = response.data as KodikPlayerResponse & Partial<KodikErrorBody>;
+    if (body && typeof body.error === 'string') {
+      throw new AppError({
+        code: KodikApi.classifyErrorBody(body.error),
+        providerId: KODIK_ID,
+        message: body.error,
+        status: response.status,
+        url: response.url,
+      });
+    }
+    return body;
   }
 
   /** Every translation (voiceover) Kodik lists for one material id. */

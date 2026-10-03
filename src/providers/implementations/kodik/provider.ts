@@ -12,6 +12,7 @@ import { AppError } from '@/core/errors/AppError';
 import { env } from '@/core/config/env';
 import { KodikApi, KODIK_ID } from '@/providers/implementations/kodik/api';
 import {
+  absolutizeLink,
   KODIK_PROVIDER_ID,
   mapEpisodes,
   mapQualities,
@@ -140,9 +141,26 @@ export class KodikProvider implements AnimeProvider {
   }
 
   /**
+   * The official Kodik player link for a title, resolved through the documented
+   * `/get-player` endpoint and falling back to the material's own link.
+   */
+  async getEmbedLink(title: AnimeTitle): Promise<string | undefined> {
+    this.assertConfigured();
+    try {
+      const player = await this.api.getPlayer({ id: title.refId });
+      const link = absolutizeLink(player.link ?? undefined);
+      if (player.found && link) return link;
+    } catch {
+      // Fall through to the material link below.
+    }
+    const release = await this.api.material(title.refId);
+    return absolutizeLink(release?.link);
+  }
+
+  /**
    * Kodik does not publish media URLs through its documented API, so the app
    * reports the limitation instead of inventing a stream. The official embed
-   * link stays available on `Episode.playerUrl`.
+   * link stays available on `Episode.playerUrl` and through `getEmbedLink`.
    */
   async getStream(): Promise<StreamBundle> {
     throw new AppError({

@@ -67,6 +67,13 @@ export interface AnimeProvider {
 
   getStream(title: AnimeTitle, episode: Episode, options?: StreamRequestOptions): Promise<StreamBundle>;
 
+  /**
+   * Optional. Sources that publish an official embed player (Kodik) return its
+   * link here so the app can play it inside the provider's own player. A media
+   * URL is never synthesised from it.
+   */
+  getEmbedLink?(title: AnimeTitle): Promise<string | undefined>;
+
   discover(filters: SearchFilters, page: number): Promise<Paged<AnimeTitle>>;
 
   getGenres(): Promise<string[]>;

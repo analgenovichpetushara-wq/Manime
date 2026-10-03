@@ -152,6 +152,21 @@ export async function fetchStream(
   return instance.getStream(title, episode, options);
 }
 
+/** True when the providers behind a title can supply an official embed player link. */
+export function supportsEmbedLink(title: AnimeTitle): boolean {
+  return getProviderManager().supportsEmbedLink(title);
+}
+
+/** Official embed player link (Kodik). Never throws into the UI. */
+export async function fetchEmbedLink(title: AnimeTitle): Promise<string | undefined> {
+  try {
+    return await getProviderManager().getEmbedLink(title);
+  } catch (error) {
+    log.warn('embed link unavailable', { error: String(error) });
+    return undefined;
+  }
+}
+
 export async function fetchGenres(): Promise<string[]> {
   try {
     return await getProviderManager().getGenres();

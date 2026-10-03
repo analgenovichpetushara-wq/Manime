@@ -147,5 +147,22 @@ jest.mock('expo-video', () => {
   };
 });
 
+// react-native-webview is a native module: tests render a placeholder that
+// still records the URL the screen asked it to load.
+jest.mock('react-native-webview', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const WebView = React.forwardRef((props, ref) =>
+    React.createElement(View, {
+      ref,
+      testID: props.testID ?? 'webview',
+      source: props.source,
+      onLayout: () => props.onLoadEnd?.(),
+    }),
+  );
+  WebView.displayName = 'WebViewStub';
+  return { __esModule: true, default: WebView, WebView };
+});
+
 // The logger is intentionally chatty; provider-failure tests do not need the noise.
 jest.spyOn(console, 'warn').mockImplementation(() => {});

@@ -162,6 +162,30 @@ describe('Kodik provider', () => {
     await expect(provider.getTitle('serial-42758')).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
+  it('resolves the official player link through /get-player and falls back to the material', async () => {
+    const requested = installStub([
+      { match: (url) => url.includes('/get-player'), body: { found: true, allowed: 1, quality: '720p', translation: 'LE-Production', link: '//kodik.info/serial/42758/bb173bb49a1d7bd2d8a7ca43c70a4082/720p' } },
+      { match: (url) => url.includes('/search'), body: kodikSearchResponse([kodikRelease], 1) },
+    ]);
+    const provider = new KodikProvider(api);
+    const title = mapRelease(kodikRelease, CAPABILITIES);
+
+    await expect(provider.getEmbedLink(title)).resolves.toBe(
+      'https://kodik.info/serial/42758/bb173bb49a1d7bd2d8a7ca43c70a4082/720p',
+    );
+    expect([...requested][0]).toContain('/get-player?');
+    expect([...requested][0]).toContain('ID=serial-42758');
+
+    // When /get-player finds nothing, the material's own link is used.
+    installStub([
+      { match: (url) => url.includes('/get-player'), body: { found: false, allowed: 0, link: null } },
+      { match: (url) => url.includes('/search'), body: kodikSearchResponse([kodikRelease], 1) },
+    ]);
+    await expect(provider.getEmbedLink(title)).resolves.toBe(
+      'https://kodik.info/serial/42758/bb173bb49a1d7bd2d8a7ca43c70a4082/720p',
+    );
+  });
+
   it('refuses to invent a stream and reports the health probe honestly', async () => {
     installStub([{ match: (url) => url.includes('/list'), body: kodikSearchResponse([kodikRelease], 1) }]);
     const provider = new KodikProvider(api);

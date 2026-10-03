@@ -13,6 +13,7 @@ import { WatchlistScreen } from '@/features/watchlists/WatchlistScreen';
 import { ProfileScreen } from '@/features/profile/ProfileScreen';
 import { SettingsScreen } from '@/features/settings/SettingsScreen';
 import { PlayerScreen } from '@/features/player/PlayerScreen';
+import { EmbedPlayerScreen } from '@/features/player/EmbedPlayerScreen';
 import { AchievementsScreen } from '@/features/achievements/AchievementsScreen';
 import { CustomizationScreen } from '@/features/settings/CustomizationScreen';
 import { EffectsScreen } from '@/features/settings/EffectsScreen';
@@ -116,6 +117,7 @@ export function RootNavigator() {
       >
         <Stack.Screen name="Tabs" component={TabNavigator} />
         <Stack.Screen name="Player" component={PlayerScreen} options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+        <Stack.Screen name="EmbedPlayer" component={EmbedPlayerScreen} options={{ headerShown: false }} />
         <Stack.Screen name="WatchTogether" component={WatchTogetherScreen} />
         <Stack.Screen name="Room" component={RoomScreen} />
         <Stack.Screen name="Achievements" component={AchievementsScreen} />

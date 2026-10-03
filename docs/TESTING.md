@@ -6,7 +6,7 @@
 | --- | --- |
 | `npm run typecheck` | `tsc --noEmit` over `src` and `__tests__` |
 | `npm run lint` | ESLint (eslint-config-expo + react-hooks rules) |
-| `npm test` | Jest (`jest-expo` preset, 20 suites / 158 tests) |
+| `npm test` | Jest (`jest-expo` preset, 21 suites / 161 tests) |
 | `npm run export:android` | Metro production bundle for Android (validates `@/` resolution) |
 | `npm run export:ios` | Metro production bundle for iOS |
 | `npm run server:smoke` | runtime check: boots the relay and drives two real WebSocket clients |
@@ -20,7 +20,8 @@
 | Suite | Area |
 | --- | --- |
 | `__tests__/providers.kodik.test.ts` | Kodik mapping from captured payloads (material → model, seasons → episodes, translations, derived qualities) and provider behaviour: search, episode/voiceover resolution, token error → `AUTHENTICATION_REQUIRED`, rate limit, malformed payload, network failure, missing material, no fabricated stream, health probe, and merged search with Kodik unauthenticated |
-| `__tests__/kodikGateway.test.ts` | gateway as a real node process against a stubbed upstream: token injected server-side and never echoed, parameter whitelist, junk routes 404, Kodik token failure → 401, upstream timeout → 504, rate limiting → 429, 503 without a token |
+| `__tests__/kodikGateway.test.ts` | gateway as a real node process against a stubbed upstream: token injected server-side and never echoed, parameter whitelist (`/get-player` included), junk routes 404, Kodik token failure → 401, upstream timeout → 504, rate limiting → 429, 503 without a token |
+| `__tests__/embedPlayer.test.tsx` | source embed player: the official Kodik link is handed to the web view, and any non-http(s) link is refused |
 | `__tests__/providerMigration.test.ts` | retired-provider data migration: re-matched entries are rebound, unmatched ones are preserved with `legacyProviderId`, the persisted document is rewritten once, and a broken store never breaks bootstrap |
 | `__tests__/providers.metadata.test.ts` | Anime365 + Shikimori mapping, duration normalisation, degraded network handling |
 | `__tests__/providerManager.test.ts` | registration, capability filtering, health classification, fallback ordering, merged/deduplicated search, failure isolation |
@@ -37,14 +38,15 @@
 | `__tests__/watchTogetherServer.test.ts` | integration: real relay node, room creation, join, playback propagation, guest read-only, chat both ways, health endpoint, unknown room, host promotion |
 | `__tests__/playback.e2e.test.tsx` | end-to-end: typed query → debounced global search over the stubbed public API → result card → animated details dialog |
 | `__tests__/playback.player.e2e.test.tsx` | end-to-end: Player screen resolves a real provider stream plan, play/pause, episode drawer, persisted resumable progress |
-| `__tests__/playback.stream-failure.e2e.test.tsx` | end-to-end resilience: unknown episode / unavailable stream keeps the player mounted and operable |
+| `__tests__/playback.stream-failure.e2e.test.tsx` | end-to-end resilience: an episode without a media URL keeps the player mounted and operable, offers the source player and opens the Kodik embed in-app |
 
 Provider fixtures live in `__tests__/fixtures/kodik.ts` and
 `__tests__/fixtures/releases.ts`; both mirror recorded responses from the real
 APIs, so mapping regressions surface without network access.
 `__tests__/helpers/playbackProviderDouble.ts` is a test-only provider used to
-exercise the streaming half of the player chain: Kodik publishes an embed link
-rather than a media URL, so no shipped provider can serve that step.
+exercise the native-player half of the chain (play/pause/progress): Kodik
+publishes an embed link rather than a media URL, so no shipped provider can
+serve that step. `react-native-webview` is stubbed in `jest.setup.js`.
 
 The end-to-end suites never touch the network: `__tests__/helpers/playbackHarness.tsx`
 installs an offline `fetch` stub for the recorded provider responses and then runs the
