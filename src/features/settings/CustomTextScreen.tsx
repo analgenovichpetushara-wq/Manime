@@ -58,7 +58,7 @@ export function CustomTextScreen() {
   const validation = editingKey ? validateOverride(editingOriginal, draft) : { valid: true, missing: [] as string[] };
 
   return (
-    <Screen testID="custom-text-screen">
+    <Screen screenId="settings" testID="custom-text-screen">
       <View style={styles.header}>
         <AppText variant="xl" weight="800" display>
           {t('text.title')}

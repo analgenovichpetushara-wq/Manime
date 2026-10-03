@@ -25,6 +25,9 @@ export type RootStackParamList = {
   Room: { roomId: string; code: string; isHost: boolean; title?: AnimeTitle; titleId?: string; episodeId?: string };
   Achievements: undefined;
   Customization: undefined;
+  Effects: undefined;
+  Backgrounds: undefined;
+  ThemeStudio: undefined;
   CustomText: undefined;
   BannerStudio: { bannerId?: string } | undefined;
   Library: { purpose?: 'avatar' | 'banner' | 'background' | 'bannerImage' } | undefined;

@@ -47,7 +47,7 @@ export function ProvidersScreen() {
   const registered = new Set(availableProviders().map((provider) => provider.id));
 
   return (
-    <Screen scrollable testID="providers-screen">
+    <Screen scrollable screenId="settings" testID="providers-screen">
       <View style={styles.header}>
         <AppText variant="xl" weight="800" display>
           {t('providers.title')}

@@ -10,6 +10,8 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { useText } from '@/i18n/useText';
 import { useAppNavigation } from '@/navigation/useAppNavigation';
 import { listPresets, readableTextColor } from '@/theme/themeEngine';
+import { customThemesToPresets } from '@/theme/customThemes';
+import { useCustomizationStore } from '@/store/customizationStore';
 import { themeActions, useThemeStore } from '@/store/themeStore';
 import { settingsActions, useSettingsStore } from '@/store/settingsStore';
 import { syncAchievements } from '@/services/achievementService';
@@ -25,7 +27,8 @@ export function CustomizationScreen() {
   const settings = useSettingsStore();
   const [applied, setApplied] = useState<string | null>(null);
   const appliedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const presets = useMemo(() => listPresets(), []);
+  const customization = useCustomizationStore();
+  const presets = useMemo(() => listPresets(customThemesToPresets(customization.customThemes)), [customization.customThemes]);
   const current = presets.find((preset) => preset.id === themeStore.presetId) ?? presets[0]!;
 
   // The swatch row shows the preset palette plus the user accent: duplicates are
@@ -56,7 +59,7 @@ export function CustomizationScreen() {
   const colorOverrides = themeStore.override.colors ?? {};
 
   return (
-    <Screen scrollable testID="customization-screen">
+    <Screen scrollable screenId="settings" testID="customization-screen">
       <View style={styles.header}>
         <AppText variant="xl" weight="800" display>
           {t('customization.title')}
@@ -200,9 +203,12 @@ export function CustomizationScreen() {
       </Card>
 
       <View style={styles.actions}>
+        <Button label={t('effects.title')} onPress={() => navigation.navigate('Effects')} testID="open-effects" />
+        <Button label={t('backgrounds.title')} variant="secondary" onPress={() => navigation.navigate('Backgrounds')} testID="open-backgrounds" />
+        <Button label={t('themeStudio.title')} variant="secondary" onPress={() => navigation.navigate('ThemeStudio')} testID="open-theme-studio" />
         <Button
           label={t('customization.resetOverrides')}
-          variant="secondary"
+          variant="ghost"
           onPress={() => themeActions.resetOverride()}
           testID="reset-theme-overrides"
         />

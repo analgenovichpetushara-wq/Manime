@@ -8,6 +8,7 @@ import { Button } from '@/ui/Button';
 import { Chip } from '@/ui/Chip';
 import { ModalSheet } from '@/ui/ModalSheet';
 import { ErrorView } from '@/ui/StateViews';
+import { BackgroundLayer } from '@/ui/BackgroundLayer';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useText } from '@/i18n/useText';
 import { useAppNavigation } from '@/navigation/useAppNavigation';
@@ -406,6 +407,7 @@ export function PlayerScreen() {
 
   return (
     <View style={styles.container} testID="player-screen">
+      <BackgroundLayer screen="player" testID="player-background" />
       <Pressable style={styles.videoWrap} onPress={toggleControls} accessibilityRole="button" testID="player-surface">
         {player && source ? (
           <VideoView

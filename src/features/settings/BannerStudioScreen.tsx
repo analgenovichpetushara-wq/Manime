@@ -53,7 +53,7 @@ export function BannerStudioScreen() {
   };
 
   return (
-    <Screen testID="banner-studio-screen">
+    <Screen screenId="settings" testID="banner-studio-screen">
       <View style={styles.header}>
         <AppText variant="xl" weight="800" display>
           {t('banners.title')}

@@ -6,10 +6,11 @@
 | --- | --- |
 | `npm run typecheck` | `tsc --noEmit` over `src` and `__tests__` |
 | `npm run lint` | ESLint (eslint-config-expo + react-hooks rules) |
-| `npm test` | Jest (`jest-expo` preset, 14 suites / 113 tests) |
+| `npm test` | Jest (`jest-expo` preset, 17 suites / 145 tests) |
 | `npm run export:android` | Metro production bundle for Android (validates `@/` resolution) |
 | `npm run export:ios` | Metro production bundle for iOS |
-| `npm run verify` | all of the above in order |
+| `npm run server:smoke` | runtime check: boots the relay and drives two real WebSocket clients |
+| `npm run verify` | typecheck + lint + tests + sync smoke + both platform bundles |
 | `npm run providers:check` | live probe of every public provider API |
 | `npm run server:watchtogether` | runs the Watch Together relay node |
 
@@ -26,6 +27,9 @@
 | `__tests__/achievements.test.ts` | catalogue integrity (66 achievements), unlock rules from real metrics, unlock timestamp stability, progress monotonicity, category grouping |
 | `__tests__/banners.library.test.ts` | banner CRUD/reorder/enable, text edits never touching the stored image, library asset usage flags, persistence |
 | `__tests__/syncEngine.test.ts` | Watch Together drift model: projection, tolerance, nudge vs. hard seek, play/pause, episode change, rate clamping |
+| `__tests__/customization.test.ts` | 13 presets, custom-theme resolution, effects engine (intensity, accessibility caps, performance modes), card/nav styles, background sanitising, theme export/import validation, customization restart persistence |
+| `__tests__/customization.ui.test.tsx` | renders the customization screens under every new preset, a card in each of the 10 card styles, the tab bar in each of the 7 navigation styles, and the effects layer on/off |
+| `__tests__/persistence.test.ts` | cold-start survival of profile, avatar/banner, favourites, watchlists, playback position, achievements, theme, overrides, custom text and settings, plus recovery from a corrupted snapshot |
 | `__tests__/watchTogetherServer.test.ts` | integration: real relay node, room creation, join, playback propagation, guest read-only, chat both ways, health endpoint, unknown room, host promotion |
 | `__tests__/playback.e2e.test.tsx` | end-to-end: typed query → debounced global search over the stubbed public API → result card → animated details dialog |
 | `__tests__/playback.player.e2e.test.tsx` | end-to-end: Player screen resolves a real provider stream plan, play/pause, episode drawer, persisted resumable progress |
@@ -46,6 +50,9 @@ Performed on every release candidate:
 
 - Every tab and stack screen opened in light and dark mode, and in at least three
   presets (Minimalist, Cyberpunk, Retro Wave).
+- Customization: Effects screen at every intensity, each card style, each
+  navigation style, a per-screen gallery background, a created/exported/imported
+  custom theme, and every accessibility switch.
 - Details dialog: fade + scale animation, dim backdrop, rounded corners, close
   button, providers/voiceovers, Watch, Add to Favorites.
 - Player: play/pause, seek, ±10 s, fullscreen, quality, speed, voiceover switch,

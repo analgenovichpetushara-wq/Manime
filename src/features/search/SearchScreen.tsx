@@ -73,7 +73,7 @@ export function SearchScreen() {
     filters.genres.length + filters.years.length + filters.statuses.length + filters.providerIds.length + filters.voiceoverKinds.length + (filters.minEpisodes ? 1 : 0);
 
   return (
-    <Screen testID="search-screen">
+    <Screen screenId="search" testID="search-screen">
       <View style={styles.header}>
         <AppText variant="xl" weight="800" display>
           {t('search.title')}

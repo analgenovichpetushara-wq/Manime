@@ -59,7 +59,7 @@ export function WatchTogetherScreen() {
   };
 
   return (
-    <Screen scrollable testID="watch-together-screen">
+    <Screen scrollable screenId="watchTogether" testID="watch-together-screen">
       <View style={styles.header}>
         <AppText variant="xl" weight="800" display>
           {t('watchTogether.title')}

@@ -12,6 +12,7 @@ export const StorageKeys = {
   library: 'library',
   providerHealth: 'provider-health',
   watchTogether: 'watch-together',
+  customization: 'customization',
   stats: 'stats',
 } as const;
 

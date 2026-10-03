@@ -3,6 +3,9 @@ import { RefreshControl, ScrollView, StyleSheet, View, type ViewStyle } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '@/theme/ThemeProvider';
+import { BackgroundLayer } from '@/ui/BackgroundLayer';
+import { EffectsLayer } from '@/ui/EffectsLayer';
+import type { BackgroundScreen } from '@/theme/backgrounds';
 
 export interface ScreenProps {
   children: React.ReactNode;
@@ -12,6 +15,10 @@ export interface ScreenProps {
   edges?: ('top' | 'bottom' | 'left' | 'right')[];
   style?: ViewStyle;
   contentStyle?: ViewStyle;
+  /** Enables the per-screen background configuration for this screen. */
+  screenId?: BackgroundScreen;
+  /** Heavy effects (particles, distortion) are skipped inside the player. */
+  minimalEffects?: boolean;
   testID?: string;
 }
 
@@ -23,6 +30,8 @@ export function Screen({
   edges = ['top'],
   style,
   contentStyle,
+  screenId,
+  minimalEffects = false,
   testID,
 }: ScreenProps) {
   const theme = useTheme();
@@ -30,6 +39,8 @@ export function Screen({
 
   return (
     <SafeAreaView edges={edges} style={[styles.safe, background, style]} testID={testID}>
+      <BackgroundLayer screen={screenId} />
+      <EffectsLayer minimal={minimalEffects} />
       <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
       {scrollable ? (
         <ScrollView

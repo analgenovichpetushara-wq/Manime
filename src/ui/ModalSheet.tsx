@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/ui/AppText';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useText } from '@/i18n/useText';
+import { BackgroundLayer } from '@/ui/BackgroundLayer';
+import type { BackgroundScreen } from '@/theme/backgrounds';
 
 export interface ModalSheetProps {
   visible: boolean;
@@ -14,6 +16,8 @@ export interface ModalSheetProps {
   testID?: string;
   /** Full-height floating dialog (anime details) vs. bottom sheet (picker). */
   presentation?: 'dialog' | 'sheet';
+  /** Renders the configured per-screen background inside the dialog. */
+  backgroundScreen?: BackgroundScreen;
 }
 
 /**
@@ -28,6 +32,7 @@ export function ModalSheet({
   scrollable = true,
   testID = 'modal-sheet',
   presentation = 'dialog',
+  backgroundScreen,
 }: ModalSheetProps) {
   const theme = useTheme();
   const { t } = useText();
@@ -69,6 +74,7 @@ export function ModalSheet({
             },
           ]}
         >
+          {backgroundScreen ? <BackgroundLayer screen={backgroundScreen} /> : null}
           <View style={styles.header}>
             <AppText variant="lg" weight="700" display numberOfLines={1} style={styles.headerTitle}>
               {title ?? ''}

@@ -12,7 +12,7 @@ const AMOLED_BACKGROUND_ALT = '#050505';
 
 /** Resolves a preset + user preferences into the concrete theme object. */
 export function resolveTheme(input: ThemeEngineInput): ResolvedTheme {
-  const preset: ThemePreset = findPreset(input.presetId);
+  const preset: ThemePreset = findPreset(input.presetId, input.extras ?? []);
   const mode: ThemeMode = input.mode;
   const baseColors = mode === 'dark' ? preset.dark : preset.light;
   let colors: ThemeColors = { ...baseColors };
@@ -108,8 +108,9 @@ export function scaledFontSize(base: number, fontScale: number): number {
   return Math.round(base * Math.max(0.8, Math.min(1.6, fontScale)));
 }
 
-export function listPresets(): ThemePreset[] {
-  return THEME_PRESETS;
+/** Built-in presets plus any user-created themes (used by the customization UI). */
+export function listPresets(extras: ThemePreset[] = []): ThemePreset[] {
+  return [...extras, ...THEME_PRESETS];
 }
 
 function stripUndefined<T extends Record<string, unknown>>(value: T): Partial<T> {

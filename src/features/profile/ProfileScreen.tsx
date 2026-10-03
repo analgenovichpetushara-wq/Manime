@@ -86,7 +86,7 @@ export function ProfileScreen() {
   );
 
   return (
-    <Screen scrollable testID="profile-screen">
+    <Screen scrollable screenId="profile" testID="profile-screen">
       <View style={[styles.bannerWrap, { backgroundColor: theme.colors.surfaceAlt }]}>
         {profile.bannerUri ? (
           <Image source={{ uri: profile.bannerUri }} style={StyleSheet.absoluteFill} contentFit="cover" />

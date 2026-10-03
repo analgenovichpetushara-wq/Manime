@@ -112,7 +112,7 @@ export function WatchlistScreen() {
   };
 
   return (
-    <Screen scrollable testID="watchlist-screen">
+    <Screen scrollable screenId="settings" testID="watchlist-screen">
       <View style={styles.header}>
         <AppText variant="xl" weight="800" display>
           {t('lists.title')}

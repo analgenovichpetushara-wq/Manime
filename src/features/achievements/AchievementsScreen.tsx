@@ -36,7 +36,7 @@ export function AchievementsScreen() {
   const percent = totalProgressPercent(achievements.states);
 
   return (
-    <Screen scrollable testID="achievements-screen">
+    <Screen scrollable screenId="achievements" testID="achievements-screen">
       <View style={styles.header}>
         <AppText variant="xl" weight="800" display>
           {t('achievements.title')}

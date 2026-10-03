@@ -175,7 +175,7 @@ function RoomView({ params }: { params: RootStackParamList['Room'] }) {
   }, [title, navigation, snapshot, params.episodeId, roomCode, isHost, showToast]);
 
   return (
-    <Screen testID="room-screen">
+    <Screen screenId="watchTogether" testID="room-screen">
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <View style={styles.header}>
           <View style={styles.codeRow}>

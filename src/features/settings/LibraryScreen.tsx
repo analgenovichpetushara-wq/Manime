@@ -48,7 +48,7 @@ export function LibraryScreen() {
   };
 
   return (
-    <Screen testID="library-screen">
+    <Screen screenId="library" testID="library-screen">
       <View style={styles.header}>
         <AppText variant="xl" weight="800" display>
           {t('library.title')}

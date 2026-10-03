@@ -27,7 +27,7 @@ export function CacheScreen() {
   }, [refresh]);
 
   return (
-    <Screen scrollable testID="cache-screen">
+    <Screen scrollable screenId="settings" testID="cache-screen">
       <View style={styles.header}>
         <AppText variant="xl" weight="800" display>
           {t('cache.title')}

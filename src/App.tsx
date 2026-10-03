@@ -15,6 +15,10 @@ import { withTimeout } from '@/core/utils/async';
 import { useSettingsStore, settingsActions } from '@/store/settingsStore';
 import { useTextStore } from '@/store/textStore';
 import { useThemeStore } from '@/store/themeStore';
+import { useCustomizationStore } from '@/store/customizationStore';
+import { resolveEffects } from '@/theme/effects';
+import { customThemesToPresets } from '@/theme/customThemes';
+import { findPreset, THEME_PRESETS } from '@/theme/presets';
 import { useAchievementsStore } from '@/store/achievementsStore';
 import { syncAchievements } from '@/services/achievementService';
 import { applySettingsToManager } from '@/services/providerService';
@@ -80,6 +84,7 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const settings = useSettingsStore();
   const themeStore = useThemeStore();
+  const customization = useCustomizationStore();
 
   useEffect(() => {
     let cancelled = false;
@@ -111,18 +116,64 @@ export default function App() {
     return () => subscription.remove();
   }, [ready]);
 
-  const themeProps = useMemo(
-    () => ({
-      presetId: themeStore.presetId,
+  const customThemes = customization.customThemes;
+
+  const themeProps = useMemo(() => {
+    const presets = customThemesToPresets(customThemes);
+    const known =
+      presets.some((preset) => preset.id === themeStore.presetId) ||
+      THEME_PRESETS.some((preset) => preset.id === themeStore.presetId);
+    const presetId = known ? themeStore.presetId : (customization.defaultCustomThemeId ?? findPreset(themeStore.presetId).id);
+    const accessibility = customization.accessibility;
+    const reduceMotion = settings.reduceMotion || accessibility.reduceMotion || !customization.animationsEnabled;
+    const activeTheme = presets.find((preset) => preset.id === presetId);
+    const largerText = accessibility.largerText ? Math.max(settings.fontScale, 1.2) : settings.fontScale;
+
+    return {
+      presetId,
       mode: settings.mode,
       amoled: settings.amoled,
       accentColor: settings.accentColor,
-      fontScale: settings.fontScale,
-      reduceMotion: settings.reduceMotion,
+      fontScale: largerText,
+      reduceMotion,
       override: themeStore.override,
-    }),
-    [themeStore.presetId, themeStore.override, settings.mode, settings.amoled, settings.accentColor, settings.fontScale, settings.reduceMotion],
-  );
+      customization: {
+        customThemes,
+        cardStyleId: customization.cardStyleId,
+        navStyleId: customization.navStyleId,
+        backgrounds: customization.backgrounds,
+        effects: resolveEffects({
+          presetId: activeTheme?.id ?? presetId,
+          levels: customization.effectLevels,
+          performanceMode: customization.performanceMode,
+          accessibility: {
+            reduceMotion,
+            disableFlashing: accessibility.disableFlashing,
+            highContrast: accessibility.highContrast,
+            reducedTransparency: accessibility.reducedTransparency,
+            reducedBlur: accessibility.reducedBlur,
+          },
+        }),
+      },
+    };
+  }, [
+    themeStore.presetId,
+    themeStore.override,
+    settings.mode,
+    settings.amoled,
+    settings.accentColor,
+    settings.fontScale,
+    settings.reduceMotion,
+    customThemes,
+    customization.defaultCustomThemeId,
+    customization.cardStyleId,
+    customization.navStyleId,
+    customization.backgrounds,
+    customization.effectLevels,
+    customization.performanceMode,
+    customization.animationsEnabled,
+    customization.accessibility,
+  ]);
 
   return (
     <GestureHandlerRootView style={styles.root}>

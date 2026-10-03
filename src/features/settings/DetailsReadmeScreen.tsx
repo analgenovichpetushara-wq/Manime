@@ -9,7 +9,7 @@ import { useText } from '@/i18n/useText';
 export function DetailsReadmeScreen() {
   const { t } = useText();
   return (
-    <Screen scrollable testID="about-screen">
+    <Screen scrollable screenId="settings" testID="about-screen">
       <View style={styles.header}>
         <AppText variant="xl" weight="800" display>
           {t('about.title')}

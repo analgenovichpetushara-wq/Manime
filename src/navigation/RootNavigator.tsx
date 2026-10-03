@@ -1,9 +1,10 @@
 import React from 'react';
+import { View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer, type Theme as NavTheme } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/theme/ThemeProvider';
+import { useTheme, useNavStyle } from '@/theme/ThemeProvider';
+import { ThemedTabBar, VERTICAL_RAIL_WIDTH } from '@/navigation/TabBar';
 import { useText } from '@/i18n/useText';
 import type { RootStackParamList, TabParamList } from '@/navigation/types';
 import { HomeScreen } from '@/features/home/HomeScreen';
@@ -14,6 +15,9 @@ import { SettingsScreen } from '@/features/settings/SettingsScreen';
 import { PlayerScreen } from '@/features/player/PlayerScreen';
 import { AchievementsScreen } from '@/features/achievements/AchievementsScreen';
 import { CustomizationScreen } from '@/features/settings/CustomizationScreen';
+import { EffectsScreen } from '@/features/settings/EffectsScreen';
+import { BackgroundStudioScreen } from '@/features/settings/BackgroundStudioScreen';
+import { ThemeStudioScreen } from '@/features/settings/ThemeStudioScreen';
 import { CustomTextScreen } from '@/features/settings/CustomTextScreen';
 import { ProvidersScreen } from '@/features/settings/ProvidersScreen';
 import { CacheScreen } from '@/features/settings/CacheScreen';
@@ -26,49 +30,48 @@ import { RoomScreen } from '@/features/watchtogether/RoomScreen';
 const Tabs = createBottomTabNavigator<TabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const TAB_ICONS: Record<keyof TabParamList, { active: string; inactive: string }> = {
-  Home: { active: 'home', inactive: 'home-outline' },
-  Search: { active: 'search', inactive: 'search-outline' },
-  Lists: { active: 'albums', inactive: 'albums-outline' },
-  Profile: { active: 'person', inactive: 'person-outline' },
-  Settings: { active: 'settings', inactive: 'settings-outline' },
-};
+/**
+ * Vertical navigation renders as a left rail, so the tab content is inset by
+ * the rail width instead of being overlapped by it.
+ */
+function withRailInset(Component: React.ComponentType, inset: number): React.ComponentType {
+  const Wrapped = () => (
+    <View style={{ flex: 1, paddingLeft: inset }}>
+      <Component />
+    </View>
+  );
+  Wrapped.displayName = 'RailInset';
+  return Wrapped;
+}
 
 function TabNavigator() {
   const theme = useTheme();
   const { t } = useText();
+  const nav = useNavStyle();
+  const inset = nav.orientation === 'vertical' ? VERTICAL_RAIL_WIDTH + nav.margin : 0;
+
+  const wrap = (Component: React.ComponentType): React.ComponentType =>
+    inset > 0 ? withRailInset(Component, inset) : Component;
 
   return (
     <Tabs.Navigator
-      screenOptions={({ route }) => ({
+      tabBar={(props) => <ThemedTabBar {...props} />}
+      screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.colors.navActive,
         tabBarInactiveTintColor: theme.colors.navInactive,
-        tabBarStyle: {
-          backgroundColor: theme.colors.navBackground,
-          borderTopColor: theme.colors.cardBorder,
-          borderTopWidth: theme.shapes.borderWidth,
-          height: 60,
-          paddingBottom: 6,
-          paddingTop: 6,
-        },
         tabBarLabelStyle: {
           fontSize: theme.typography.sizes.xs,
           fontFamily: theme.typography.fontFamilyBody,
           textTransform: theme.presentation.headlineTransform === 'uppercase' ? 'uppercase' : 'none',
         },
-        tabBarIcon: ({ color, size, focused }) => {
-          const icons = TAB_ICONS[route.name];
-          const name = (theme.presentation.iconStyle === 'filled' || focused ? icons.active : icons.inactive) as keyof typeof Ionicons.glyphMap;
-          return <Ionicons name={name} size={size} color={color} />;
-        },
-      })}
+      }}
     >
-      <Tabs.Screen name="Home" component={HomeScreen} options={{ title: t('nav.home') }} />
-      <Tabs.Screen name="Search" component={SearchScreen} options={{ title: t('nav.search') }} />
-      <Tabs.Screen name="Lists" component={WatchlistScreen} options={{ title: t('nav.lists') }} />
-      <Tabs.Screen name="Profile" component={ProfileScreen} options={{ title: t('nav.profile') }} />
-      <Tabs.Screen name="Settings" component={SettingsScreen} options={{ title: t('nav.settings') }} />
+      <Tabs.Screen name="Home" component={wrap(HomeScreen)} options={{ title: t('nav.home') }} />
+      <Tabs.Screen name="Search" component={wrap(SearchScreen)} options={{ title: t('nav.search') }} />
+      <Tabs.Screen name="Lists" component={wrap(WatchlistScreen)} options={{ title: t('nav.lists') }} />
+      <Tabs.Screen name="Profile" component={wrap(ProfileScreen)} options={{ title: t('nav.profile') }} />
+      <Tabs.Screen name="Settings" component={wrap(SettingsScreen)} options={{ title: t('nav.settings') }} />
     </Tabs.Navigator>
   );
 }
@@ -109,6 +112,9 @@ export function RootNavigator() {
         <Stack.Screen name="Room" component={RoomScreen} />
         <Stack.Screen name="Achievements" component={AchievementsScreen} />
         <Stack.Screen name="Customization" component={CustomizationScreen} />
+        <Stack.Screen name="Effects" component={EffectsScreen} />
+        <Stack.Screen name="Backgrounds" component={BackgroundStudioScreen} />
+        <Stack.Screen name="ThemeStudio" component={ThemeStudioScreen} />
         <Stack.Screen name="CustomText" component={CustomTextScreen} />
         <Stack.Screen name="BannerStudio" component={BannerStudioScreen} />
         <Stack.Screen name="Library" component={LibraryScreen} />

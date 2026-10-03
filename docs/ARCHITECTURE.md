@@ -28,7 +28,8 @@ src/
     implementations/      anilibria, anime365, shikimori, anidub
   services/               orchestration between stores, providers and the cache
   store/                  persisted stores (zustand + custom persistence layer)
-  theme/                  config-driven theme engine + 7 built-in presets
+  theme/                  config-driven theme engine, 13 presets, effects engine,
+                          card styles, navigation styles, backgrounds, custom themes
   i18n/                   string catalogue, runtime translation, user overrides
   ui/                     reusable design-system components
   features/               screens grouped by feature (home, search, details,

@@ -103,7 +103,13 @@ function AnimeDetailsBody({ activeTitle }: { activeTitle: AnimeTitle | null }) {
   if (!activeTitle || !detail) return null;
 
   return (
-    <ModalSheet visible={Boolean(activeTitle)} onClose={closeTitle} title={detail.title} testID="details-modal">
+    <ModalSheet
+      visible={Boolean(activeTitle)}
+      onClose={closeTitle}
+      title={detail.title}
+      backgroundScreen="details"
+      testID="details-modal"
+    >
       <View style={styles.heroRow}>
         {detail.poster ? (
           <Image

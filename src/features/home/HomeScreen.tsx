@@ -91,7 +91,7 @@ export function HomeScreen() {
   const unlocked = Object.values(achievements.states).filter((state) => state.unlocked).length;
 
   return (
-    <Screen scrollable refreshing={refreshing} onRefresh={onRefresh} testID="home-screen">
+    <Screen scrollable refreshing={refreshing} onRefresh={onRefresh} screenId="home" testID="home-screen">
       <View style={styles.header}>
         <View>
           <AppText variant="xs" tone="muted">

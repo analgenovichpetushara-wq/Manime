@@ -12,6 +12,8 @@ import { useText } from '@/i18n/useText';
 import { useAppNavigation } from '@/navigation/useAppNavigation';
 import { settingsActions, useSettingsStore } from '@/store/settingsStore';
 import { listPresets } from '@/theme/themeEngine';
+import { customThemesToPresets } from '@/theme/customThemes';
+import { useCustomizationStore } from '@/store/customizationStore';
 import { useThemeStore } from '@/store/themeStore';
 import type { AppLanguage } from '@/data/models/settings';
 
@@ -63,12 +65,13 @@ export function SettingsScreen() {
   const navigation = useAppNavigation();
   const settings = useSettingsStore();
   const themeStore = useThemeStore();
-  const presets = useMemo(() => listPresets(), []);
+  const customization = useCustomizationStore();
+  const presets = useMemo(() => listPresets(customThemesToPresets(customization.customThemes)), [customization.customThemes]);
 
   const currentPreset = presets.find((preset) => preset.id === themeStore.presetId) ?? presets[0];
 
   return (
-    <Screen scrollable testID="settings-screen">
+    <Screen scrollable screenId="settings" testID="settings-screen">
       <View style={styles.header}>
         <AppText variant="xl" weight="800" display>
           {t('settings.title')}
@@ -108,6 +111,27 @@ export function SettingsScreen() {
           label={t('settings.accent')}
           hint={settings.accentColor ?? t('settings.accentDefault')}
           onPress={() => navigation.navigate('Customization')}
+        />
+        <Row
+          label={t('effects.title')}
+          hint={t('effects.subtitle')}
+          icon="color-wand-outline"
+          onPress={() => navigation.navigate('Effects')}
+          testID="open-effects"
+        />
+        <Row
+          label={t('backgrounds.title')}
+          hint={t('backgrounds.subtitle')}
+          icon="image-outline"
+          onPress={() => navigation.navigate('Backgrounds')}
+          testID="open-backgrounds"
+        />
+        <Row
+          label={t('themeStudio.title')}
+          hint={t('themeStudio.subtitle')}
+          icon="brush-outline"
+          onPress={() => navigation.navigate('ThemeStudio')}
+          testID="open-theme-studio"
         />
         <View style={styles.chipRow}>
           {[0.9, 1, 1.15, 1.3].map((scale) => (

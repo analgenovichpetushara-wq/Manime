@@ -113,6 +113,8 @@ export interface ThemeOverride {
 
 export interface ThemeEngineInput {
   presetId: string;
+  /** Additional presets (user-created themes) resolved before the built-ins. */
+  extras?: ThemePreset[];
   mode: ThemeMode;
   amoled?: boolean;
   accentColor?: string;
