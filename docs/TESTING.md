@@ -6,7 +6,7 @@
 | --- | --- |
 | `npm run typecheck` | `tsc --noEmit` over `src` and `__tests__` |
 | `npm run lint` | ESLint (eslint-config-expo + react-hooks rules) |
-| `npm test` | Jest (`jest-expo` preset, 17 suites / 145 tests) |
+| `npm test` | Jest (`jest-expo` preset, 18 suites / 147 tests) |
 | `npm run export:android` | Metro production bundle for Android (validates `@/` resolution) |
 | `npm run export:ios` | Metro production bundle for iOS |
 | `npm run server:smoke` | runtime check: boots the relay and drives two real WebSocket clients |
@@ -27,6 +27,7 @@
 | `__tests__/achievements.test.ts` | catalogue integrity (66 achievements), unlock rules from real metrics, unlock timestamp stability, progress monotonicity, category grouping |
 | `__tests__/banners.library.test.ts` | banner CRUD/reorder/enable, text edits never touching the stored image, library asset usage flags, persistence |
 | `__tests__/syncEngine.test.ts` | Watch Together drift model: projection, tolerance, nudge vs. hard seek, play/pause, episode change, rate clamping |
+| `__tests__/app.boot.test.tsx` | boots the shipped `App`: hydration gate, `NavigationContainer` above `AppShell`, tabs + stack, and the global details dialog opened from the shell without a navigation error |
 | `__tests__/customization.test.ts` | 13 presets, custom-theme resolution, effects engine (intensity, accessibility caps, performance modes), card/nav styles, background sanitising, theme export/import validation, customization restart persistence |
 | `__tests__/customization.ui.test.tsx` | renders the customization screens under every new preset, a card in each of the 10 card styles, the tab bar in each of the 7 navigation styles, and the effects layer on/off |
 | `__tests__/persistence.test.ts` | cold-start survival of profile, avatar/banner, favourites, watchlists, playback position, achievements, theme, overrides, custom text and settings, plus recovery from a corrupted snapshot |
@@ -48,6 +49,7 @@ and `expo-video`), so the player logic under test is the shipped one.
 
 Performed on every release candidate:
 
+- Cold start on a device: the app reaches the Home tab (no error boundary).
 - Every tab and stack screen opened in light and dark mode, and in at least three
   presets (Minimalist, Cyberpunk, Retro Wave).
 - Customization: Effects screen at every intensity, each card style, each

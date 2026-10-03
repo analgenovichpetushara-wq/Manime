@@ -6,7 +6,8 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { TextProvider } from '@/i18n/useText';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
-import { RootNavigator } from '@/navigation/RootNavigator';
+import { NavigationContainer } from '@react-navigation/native';
+import { RootNavigator, useNavigationTheme } from '@/navigation/RootNavigator';
 import { AppShell, useAchievementAnnouncer } from '@/navigation/AppShell';
 import { ErrorBoundary } from '@/ui/ErrorBoundary';
 import { LoadingView } from '@/ui/StateViews';
@@ -52,6 +53,7 @@ function ThemedApp() {
   const settings = useSettingsStore();
   const themeStore = useThemeStore();
   const textStore = useTextStore();
+  const navigationTheme = useNavigationTheme();
 
   /** Keep the persisted settings row in sync with the active preset. */
   useEffect(() => {
@@ -71,10 +73,14 @@ function ThemedApp() {
     <TextProvider language={language} overrides={overrides}>
       <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} animated />
       <ErrorBoundary>
-        <AppShell>
-          <AchievementBridge />
-          <RootNavigator />
-        </AppShell>
+        {/* The container sits above AppShell: the global details dialog and the
+            toast host are rendered by AppShell and need a navigation object. */}
+        <NavigationContainer theme={navigationTheme}>
+          <AppShell>
+            <AchievementBridge />
+            <RootNavigator />
+          </AppShell>
+        </NavigationContainer>
       </ErrorBoundary>
     </TextProvider>
   );

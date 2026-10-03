@@ -2,7 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { NavigationContainer, type Theme as NavTheme } from '@react-navigation/native';
+import type { Theme as NavTheme } from '@react-navigation/native';
 import { useTheme, useNavStyle } from '@/theme/ThemeProvider';
 import { ThemedTabBar, VERTICAL_RAIL_WIDTH } from '@/navigation/TabBar';
 import { useText } from '@/i18n/useText';
@@ -76,10 +76,14 @@ function TabNavigator() {
   );
 }
 
-export function RootNavigator() {
+/**
+ * React Navigation theme derived from the active AnimAlc theme.
+ * Exported because `NavigationContainer` is mounted in `App.tsx` — above
+ * `AppShell` — so the global details dialog and toasts can navigate too.
+ */
+export function useNavigationTheme(): NavTheme {
   const theme = useTheme();
-
-  const navigationTheme: NavTheme = {
+  return {
     dark: theme.mode === 'dark',
     colors: {
       primary: theme.colors.primary,
@@ -96,9 +100,13 @@ export function RootNavigator() {
       heavy: { fontFamily: theme.typography.fontFamilyDisplay, fontWeight: '800' },
     },
   };
+}
+
+/** Stack navigator only — `App.tsx` owns the `NavigationContainer`. */
+export function RootNavigator() {
+  const theme = useTheme();
 
   return (
-    <NavigationContainer theme={navigationTheme}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
@@ -122,6 +130,5 @@ export function RootNavigator() {
         <Stack.Screen name="Cache" component={CacheScreen} />
         <Stack.Screen name="About" component={DetailsReadmeScreen} />
       </Stack.Navigator>
-    </NavigationContainer>
   );
 }

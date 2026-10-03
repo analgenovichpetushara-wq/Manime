@@ -196,6 +196,7 @@ export function HomeScreen() {
           {discover.slice(0, 14).map((title) => (
             <PosterCard
               key={title.id}
+              testID={`discover-${title.id}`}
               title={title.title}
               subtitle={title.year ? String(title.year) : undefined}
               poster={title.poster}
