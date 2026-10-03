@@ -6,6 +6,13 @@ on:
       - main
   workflow_dispatch:
 
+# Repository secrets that produce a signed release APK (see docs/RELEASE.md):
+#   ANDROID_KEYSTORE_BASE64   base64 of the release .keystore file
+#   ANDROID_KEYSTORE_PASSWORD
+#   ANDROID_KEY_ALIAS
+#   ANDROID_KEY_PASSWORD
+# Without them the workflow still runs, but builds the debug variant and says so.
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,23 +36,73 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Restore release keystore
+        id: keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_BASE64:-}" ] || [ -z "${STORE_PASSWORD:-}" ] || [ -z "${KEY_ALIAS:-}" ] || [ -z "${KEY_PASSWORD:-}" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::ANDROID_KEYSTORE_* secrets are not set — building the debug variant instead of a signed release."
+            exit 0
+          fi
+          # Written outside android/ because `expo prebuild --clean` regenerates it.
+          echo "$KEYSTORE_BASE64" | base64 -d > "$GITHUB_WORKSPACE/animalc-release.keystore"
+          {
+            echo "ANIMALC_UPLOAD_STORE_FILE=$GITHUB_WORKSPACE/animalc-release.keystore"
+            echo "ANIMALC_UPLOAD_STORE_PASSWORD=$STORE_PASSWORD"
+            echo "ANIMALC_UPLOAD_KEY_ALIAS=$KEY_ALIAS"
+            echo "ANIMALC_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+          echo "available=true" >> "$GITHUB_OUTPUT"
+
       - name: Expo prebuild
         run: npx expo prebuild -p android --clean
 
-      - name: Build Android APK
+      - name: Build signed release APK
+        if: steps.keystore.outputs.available == 'true'
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Build debug APK (no keystore configured)
+        if: steps.keystore.outputs.available != 'true'
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Find generated APK
+      - name: Locate the APK
+        id: apk
         run: |
-          echo "=== Searching for APK files ==="
-          find android -type f -name "*.apk" -print
-          echo "=== APK search finished ==="
+          set -euo pipefail
+          if [ "${{ steps.keystore.outputs.available }}" = "true" ]; then
+            APK="$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)"
+          else
+            APK="$(find android/app/build/outputs/apk/debug -name '*.apk' | head -n 1)"
+          fi
+          test -n "$APK"
+          echo "path=$APK" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the APK signature
+        run: |
+          set -euo pipefail
+          APK="${{ steps.apk.outputs.path }}"
+          BUILD_TOOLS="$(ls -d "$ANDROID_HOME"/build-tools/* 2>/dev/null | sort -V | tail -n 1)"
+          if [ -n "$BUILD_TOOLS" ] && [ -x "$BUILD_TOOLS/apksigner" ]; then
+            "$BUILD_TOOLS/apksigner" verify --print-certs "$APK"
+          else
+            keytool -printcert -jarfile "$APK"
+          fi
+          if [ "${{ steps.keystore.outputs.available }}" = "true" ]; then
+            "$BUILD_TOOLS/apksigner" verify "$APK" 2>/dev/null || keytool -printcert -jarfile "$APK"
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: AnimAlc-debug-apk
-          path: android/**/build/outputs/apk/**/*.apk
+          name: ${{ steps.keystore.outputs.available == 'true' && 'AnimAlc-release-apk' || 'AnimAlc-debug-apk' }}
+          path: ${{ steps.apk.outputs.path }}
           if-no-files-found: error
           retention-days: 7

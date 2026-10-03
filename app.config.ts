@@ -17,6 +17,10 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'app.animalc.mobile',
+    buildNumber: process.env.EXPO_PUBLIC_IOS_BUILD_NUMBER ?? '1',
+    // Signing an iOS build needs an Apple Developer team; the id is provided at
+    // build time and is not a secret (see docs/RELEASE.md).
+    appleTeamId: process.env.EXPO_PUBLIC_APPLE_TEAM_ID ?? undefined,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSPhotoLibraryUsageDescription:
@@ -38,6 +42,9 @@ const config: ExpoConfig = {
     permissions: ['INTERNET', 'ACCESS_NETWORK_STATE', 'READ_MEDIA_IMAGES', 'READ_MEDIA_VIDEO', 'VIBRATE'],
   },
   plugins: [
+    // Release signing for the generated Android project (keystore comes from
+    // the environment or android/keystore.properties — never from the repo).
+    './plugins/withAndroidSigning',
     'expo-video',
     [
       'expo-image-picker',

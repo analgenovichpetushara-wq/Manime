@@ -6,10 +6,29 @@ workflows:
     environment:
       node: 20
       java: 17
+      # Encrypted variables (Codemagic → Environment variables):
+      #   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+      #   ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+      groups:
+        - android_signing
     scripts:
       - name: Install dependencies
         script: |
           npm install --legacy-peer-deps
+      - name: Restore release keystore
+        script: |
+          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ] && [ -n "${ANDROID_KEYSTORE_PASSWORD:-}" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$CM_BUILD_DIR/animalc-release.keystore"
+            {
+              echo "ANIMALC_UPLOAD_STORE_FILE=$CM_BUILD_DIR/animalc-release.keystore"
+              echo "ANIMALC_UPLOAD_STORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+              echo "ANIMALC_UPLOAD_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+              echo "ANIMALC_UPLOAD_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+            } >> "$CM_ENV"
+            echo "Release signing enabled."
+          else
+            echo "No keystore configured — the debug variant will be built."
+          fi
       - name: Expo prebuild
         script: |
           npx expo prebuild --platform android --clean --no-install
@@ -17,6 +36,10 @@ workflows:
         script: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          if [ -n "${ANIMALC_UPLOAD_STORE_FILE:-}" ]; then
+            ./gradlew assembleRelease --no-daemon
+          else
+            ./gradlew assembleDebug --no-daemon
+          fi
     artifacts:
       - android/app/build/outputs/apk/**/*.apk

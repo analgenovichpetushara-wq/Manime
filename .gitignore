@@ -14,6 +14,9 @@ app.json.bak
 android/
 ios/
 *.jks
+*.keystore
+keystore.properties
+credentials.json
 *.p8
 *.p12
 *.key
