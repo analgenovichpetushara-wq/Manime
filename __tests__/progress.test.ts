@@ -6,9 +6,9 @@ import type { CompletionEvent } from '@/core/stats/watchStats';
 
 function entry(overrides: Partial<WatchProgress> = {}): WatchProgress {
   return {
-    titleId: 'anilibria:1',
+    titleId: 'kodik:serial-1',
     titleName: 'Тестовый релиз',
-    providerId: 'anilibria',
+    providerId: 'kodik',
     episodeId: 'e1',
     episodeOrdinal: 1,
     positionSec: 120,
@@ -21,7 +21,7 @@ function entry(overrides: Partial<WatchProgress> = {}): WatchProgress {
 
 function completion(overrides: Partial<CompletionEvent> = {}): CompletionEvent {
   return {
-    providerId: 'anilibria',
+    providerId: 'kodik',
     voiceoverKind: 'voice',
     genres: ['Фэнтези'],
     completedAt: Date.now(),
@@ -38,12 +38,12 @@ describe('watch progress', () => {
 
   it('stores the episode, position, provider and voiceover for continue-watching', () => {
     progressActions.saveProgress(entry({ voiceoverId: 'vo-1', qualityId: '1080' }));
-    const stored = progressFor(useProgressStore.getState(), 'anilibria:1');
+    const stored = progressFor(useProgressStore.getState(), 'kodik:serial-1');
     expect(stored).toMatchObject({
       episodeId: 'e1',
       episodeOrdinal: 1,
       positionSec: 120,
-      providerId: 'anilibria',
+      providerId: 'kodik',
       voiceoverId: 'vo-1',
       qualityId: '1080',
       completed: false,
@@ -53,7 +53,7 @@ describe('watch progress', () => {
   it('never regresses a completed entry back to unfinished', () => {
     progressActions.saveProgress(entry({ completed: true }));
     progressActions.saveProgress(entry({ positionSec: 10, completed: false }));
-    expect(progressFor(useProgressStore.getState(), 'anilibria:1')?.completed).toBe(true);
+    expect(progressFor(useProgressStore.getState(), 'kodik:serial-1')?.completed).toBe(true);
   });
 
   it('orders continue-watching by recency and skips finished/untouched entries', () => {
@@ -70,7 +70,7 @@ describe('watch progress', () => {
   it('derives statistics from real completions only', () => {
     progressActions.completeEpisode(entry({ durationSec: 1440, completed: true }), completion({ watchedSeconds: 1440 }), false);
     progressActions.completeEpisode(
-      entry({ titleId: 'anilibria:2', episodeId: 'e2', durationSec: 1200, completed: true }),
+      entry({ titleId: 'kodik:serial-2', episodeId: 'e2', durationSec: 1200, completed: true }),
       completion({ watchedSeconds: 1200, genres: ['Комедия'], providerId: 'anime365', nightWatch: true }),
       true,
     );
@@ -80,7 +80,7 @@ describe('watch progress', () => {
     // Two distinct titles were finished, so both count as completed titles.
     expect(stats.titlesCompleted).toBe(2);
     expect(stats.secondsWatched).toBe(2640);
-    expect(stats.providersUsed).toMatchObject({ anilibria: 1, anime365: 1 });
+    expect(stats.providersUsed).toMatchObject({ kodik: 1, anime365: 1 });
     expect(stats.genresWatched).toMatchObject({ Фэнтези: 1, Комедия: 1 });
     expect(stats.distinctProviders).toBe(2);
     expect(stats.nightEpisodes).toBe(1);

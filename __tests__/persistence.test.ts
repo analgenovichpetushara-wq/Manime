@@ -13,15 +13,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { storageKey } from '@/core/storage/storage';
 
 const title = titleFromListEntry({
-  titleId: 'anilibria:42',
+  titleId: 'kodik:serial-42',
   titleName: 'Проверка сохранения',
   poster: 'https://example.invalid/p.jpg',
-  providerId: 'anilibria',
+  providerId: 'kodik',
   categories: [],
   addedAt: 1,
   updatedAt: 1,
   genres: ['Драма'],
-  refIds: [{ providerId: 'anilibria', refId: '42' }],
+  refIds: [{ providerId: 'kodik', refId: '42' }],
 });
 
 /**
@@ -83,13 +83,13 @@ describe('restart persistence', () => {
     progressActions.saveProgress({
       titleId: title.id,
       titleName: title.title,
-      providerId: 'anilibria',
+      providerId: 'kodik',
       episodeId: 'ep-7',
       episodeOrdinal: 7,
       positionSec: 934,
       durationSec: 1440,
       completed: false,
-      voiceoverId: 'vo-anilibria',
+      voiceoverId: 'vo-kodik',
       qualityId: '720',
       updatedAt: Date.now(),
     });
@@ -100,7 +100,7 @@ describe('restart persistence', () => {
     const entry = fresh.store.getState().entries[title.id];
     expect(entry?.positionSec).toBe(934);
     expect(entry?.episodeOrdinal).toBe(7);
-    expect(entry?.voiceoverId).toBe('vo-anilibria');
+    expect(entry?.voiceoverId).toBe('vo-kodik');
   });
 
   it('restores unlocked achievements and their timestamps', async () => {

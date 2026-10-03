@@ -8,17 +8,24 @@
  * reported as "needs credentials" and skipped.
  *
  *   npm run providers:check
- *   npm run providers:check -- --provider anilibria --query "Магистр дьявольского культа"
+ *   npm run providers:check -- --provider kodik --query "Наруто"
+ *
+ * Kodik needs a partner token; without one the script proves the endpoint is
+ * alive and reports the credential error the API actually returns.
  */
 
 const DEFAULT_QUERY = process.env.PROVIDER_CHECK_QUERY ?? 'магистр';
 
+const KODIK_TOKEN = process.env.EXPO_PUBLIC_KODIK_TOKEN ?? process.env.KODIK_API_TOKEN ?? '';
+const KODIK_GATEWAY = process.env.EXPO_PUBLIC_KODIK_GATEWAY_URL ?? '';
+
 const ENDPOINTS = {
-  anilibria: {
-    label: 'AniLiberty (Anilibria)',
-    base: process.env.EXPO_PUBLIC_ANILIBRIA_BASE_URL ?? 'https://api.anilibria.app/api/v1',
-    capabilities: ['search', 'metadata', 'episodes', 'voiceovers', 'streams', 'qualities'],
-    public: true,
+  kodik: {
+    label: 'Kodik',
+    base: KODIK_GATEWAY || process.env.EXPO_PUBLIC_KODIK_BASE_URL || 'https://kodik-api.com',
+    capabilities: ['search', 'metadata', 'episodes', 'voiceovers', 'qualities'],
+    public: false,
+    note: 'partner token required (EXPO_PUBLIC_KODIK_TOKEN or EXPO_PUBLIC_KODIK_GATEWAY_URL)',
   },
   anime365: {
     label: 'Anime365 / smotret-anime',
@@ -32,13 +39,6 @@ const ENDPOINTS = {
     base: process.env.EXPO_PUBLIC_SHIKIMORI_BASE_URL ?? 'https://shikimori.io/api',
     capabilities: ['search', 'metadata'],
     public: true,
-  },
-  anidub: {
-    label: 'AniDUB / AniBoom',
-    base: 'https://aniboom.one/api',
-    capabilities: ['search', 'metadata', 'episodes'],
-    public: false,
-    note: 'answers 401 without a personal bearer token — disabled by default',
   },
 };
 
@@ -80,30 +80,64 @@ async function timedFetch(url, options = {}, timeoutMs = 12_000) {
 }
 
 const probes = {
-  async anilibria(base, query) {
+  async kodik(base, query) {
     const steps = [];
-    const search = await timedFetch(`${base}/anime/catalog/releases?search=${encodeURIComponent(query)}&limit=5`);
-    const releases = search.payload?.data ?? search.payload?.results ?? [];
-    steps.push({ name: 'search', ...summarise(search, Array.isArray(releases) ? releases.length : 0) });
-    const first = Array.isArray(releases) ? releases[0] : null;
-    if (!first) return steps;
-
-    const id = first.id ?? first.alias;
-    const detail = await timedFetch(`${base}/anime/releases/${encodeURIComponent(id)}`);
-    steps.push({ name: 'metadata', ...summarise(detail, detail.payload ? 1 : 0) });
-
-    const episodes = await timedFetch(`${base}/anime/releases/${encodeURIComponent(id)}/episodes`);
-    const episodeList = episodes.payload?.data ?? [];
-    steps.push({ name: 'episodes', ...summarise(episodes, Array.isArray(episodeList) ? episodeList.length : 0) });
-
-    const hls = episodeList.find((episode) => episode?.hls?.['720'] || episode?.hls?.['1080']);
-    const hlsUrl = hls?.hls?.['1080'] ?? hls?.hls?.['720'];
-    if (hlsUrl) {
-      const head = await timedFetch(hlsUrl, { method: 'HEAD' }, 15_000);
-      steps.push({ name: 'stream(720/1080)', ...summarise(head, head.ok ? 1 : 0) });
-    } else {
-      steps.push({ name: 'stream(720/1080)', ok: false, status: 0, ms: 0, items: 0, note: 'no HLS url on the first episodes' });
+    if (!KODIK_TOKEN && !KODIK_GATEWAY) {
+      // No credential: still prove the endpoint answers, and show its real error.
+      const probe = await timedFetch(`${base}/search?title=${encodeURIComponent(query)}&limit=1`);
+      steps.push({
+        name: 'access',
+        ok: false,
+        status: probe.status,
+        ms: probe.ms,
+        items: 0,
+        note: probe.payload?.error ?? 'partner token required (EXPO_PUBLIC_KODIK_TOKEN / gateway)',
+      });
+      return steps;
     }
+
+    const auth = KODIK_GATEWAY ? '' : `&token=${encodeURIComponent(KODIK_TOKEN)}`;
+    const search = await timedFetch(`${base}/search?title=${encodeURIComponent(query)}&limit=5${auth}`);
+    const results = search.payload?.results ?? [];
+    steps.push({ name: 'search', ...summarise(search, Array.isArray(results) ? results.length : 0) });
+    const first = Array.isArray(results) ? results[0] : null;
+    if (!first?.id) return steps;
+
+    const material = await timedFetch(
+      `${base}/search?id=${encodeURIComponent(first.id)}&limit=1&with_material_data=true${auth}`,
+    );
+    steps.push({ name: 'metadata', ...summarise(material, material.payload?.results?.length ?? 0) });
+
+    const episodes = await timedFetch(
+      `${base}/search?id=${encodeURIComponent(first.id)}&limit=1&with_episodes=true&with_episodes_data=true${auth}`,
+    );
+    const seasons = episodes.payload?.results?.[0]?.seasons ?? {};
+    const episodeCount = Object.values(seasons).reduce(
+      (total, season) => total + Object.keys(season?.episodes ?? {}).length,
+      0,
+    );
+    steps.push({ name: 'episodes', ...summarise(episodes, episodeCount) });
+
+    const translations = await timedFetch(`${base}/search?id=${encodeURIComponent(first.id)}&limit=100${auth}`);
+    const voices = new Set(
+      (translations.payload?.results ?? []).map((release) => release?.translation?.id).filter(Boolean),
+    );
+    steps.push({ name: 'voiceovers', ...summarise(translations, voices.size) });
+
+    const qualities = new Set(
+      (translations.payload?.results ?? [])
+        .map((release) => /(\d{3,4})\s*p/i.exec(release?.quality ?? '')?.[1])
+        .filter(Boolean),
+    );
+    steps.push({ name: 'qualities', ...summarise(translations, qualities.size) });
+    steps.push({
+      name: 'streams',
+      ok: false,
+      status: 0,
+      ms: 0,
+      items: 0,
+      note: 'Kodik publishes an embed player link, not a media URL — never extracted around its player',
+    });
     return steps;
   },
 
@@ -132,16 +166,6 @@ const probes = {
     return [{ name: 'metadata search', ...summarise(search, list.length) }];
   },
 
-  async anidub(base, query) {
-    const search = await timedFetch(`${base}/search?query=${encodeURIComponent(query)}`);
-    return [
-      {
-        name: 'search',
-        ...summarise(search, 0),
-        note: search.status === 401 ? 'requires a personal bearer token' : undefined,
-      },
-    ];
-  },
 };
 
 function summarise(result, items) {
@@ -165,16 +189,10 @@ async function main() {
       report[id] = [{ name: 'configuration', ok: false, note: 'unknown provider id' }];
       continue;
     }
-    if (!endpoint.public) {
-      report[id] = [
-        {
-          name: 'access',
-          ok: false,
-          status: 0,
-          items: 0,
-          note: endpoint.note ?? 'not a public API — skipped',
-        },
-      ];
+    if (!endpoint.public && !KODIK_TOKEN && !KODIK_GATEWAY) {
+      // Still probe it: an unauthenticated call proves reachability and shows the
+      // credential error, which is more useful than a skipped line.
+      report[id] = await probes[id](endpoint.base, args.query);
       continue;
     }
     try {

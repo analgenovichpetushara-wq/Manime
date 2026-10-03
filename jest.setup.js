@@ -4,6 +4,9 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 process.env.EXPO_PUBLIC_ENV = 'test';
 process.env.EXPO_PUBLIC_WATCH_TOGETHER_URL = 'ws://localhost:8787';
+// Placeholder partner token: it only marks the Kodik client as configured so the
+// real request/mapping code runs against the offline fetch stub. Never a real key.
+process.env.EXPO_PUBLIC_KODIK_TOKEN = 'test-partner-token';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),

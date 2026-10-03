@@ -4,7 +4,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@/navigation/types';
 import { PlayerScreen } from '@/features/player/PlayerScreen';
 import { progressActions, progressFor, useProgressStore } from '@/store/progressStore';
-import { EPISODE, installFetchStub, playerTitle, requestedHosts, resetPlaybackState, wrap } from './helpers/playbackHarness';
+import { EPISODE, installFetchStub, playerTitle, requestedHosts, resetPlaybackState, TITLE, wrap } from './helpers/playbackHarness';
+import { PLAYBACK_DOUBLE_ID, registerPlaybackDouble, unregisterPlaybackDouble } from './helpers/playbackProviderDouble';
 
 jest.setTimeout(30_000);
 
@@ -19,6 +20,10 @@ beforeEach(() => {
   resetPlaybackState();
 });
 
+afterEach(() => {
+  unregisterPlaybackDouble();
+});
+
 afterEach(async () => {
   await act(async () => {
     await Promise.resolve();
@@ -27,7 +32,10 @@ afterEach(async () => {
 
 describe('playback progress', () => {
   it('plays an episode end to end and stores resumable progress', async () => {
-    const title = playerTitle();
+    // Kodik publishes an embed link, not a media URL, so the streaming half of
+    // the chain runs against an in-test provider double (see the helper).
+    const title = { ...registerPlaybackDouble({ title: TITLE, episodes: [EPISODE] }), ...playerTitle() };
+    title.providerRefs = [{ providerId: PLAYBACK_DOUBLE_ID, refId: TITLE.refId }, ...TITLE.providerRefs];
     const view = await render(
       wrap(
         <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -38,7 +46,7 @@ describe('playback progress', () => {
 
     await waitFor(() => expect(view.getByTestId('player-screen')).toBeTruthy(), { timeout: 8000 });
     // The stream resolves through the real provider chain and the (mocked) native player.
-    await waitFor(() => expect(requestedHosts.has('api.anilibria.app')).toBe(true), { timeout: 8000 });
+    await waitFor(() => expect(view.getByTestId('video-view')).toBeTruthy(), { timeout: 8000 });
 
     await act(async () => {
       fireEvent.press(view.getByTestId('player-play-pause'));
@@ -53,7 +61,7 @@ describe('playback progress', () => {
       progressActions.saveProgress({
         titleId: title.id,
         titleName: title.title,
-        providerId: 'anilibria',
+        providerId: 'kodik',
         episodeId: EPISODE.id,
         episodeOrdinal: EPISODE.ordinal,
         positionSec: 300,

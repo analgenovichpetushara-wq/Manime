@@ -56,9 +56,9 @@ export function createDefaultSettings(): AppSettings {
     downloadsEnabled: false,
     downloadQuality: '720',
     cacheTtlHours: 6,
-    providerPreferences: ['anilibria', 'anime365', 'shikimori'],
+    providerPreferences: ['kodik', 'anime365', 'shikimori'],
     disabledProviderIds: [],
     matureTitlesVisible: true,
-    defaultVoiceoverProviderPreference: ['anilibria', 'anime365'],
+    defaultVoiceoverProviderPreference: ['kodik', 'anime365'],
   };
 }

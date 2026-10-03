@@ -54,11 +54,11 @@ const progressStorageKey = storageKey('progress');
 const listsStorageKey = storageKey('lists');
 
 const title = titleFromListEntry({
-  titleId: 'anilibria:1',
-  refIds: [{ providerId: 'anilibria', refId: '1' }],
+  titleId: 'kodik:serial-42758',
+  refIds: [{ providerId: 'kodik', refId: 'serial-42758' }],
   titleName: 'Магистр дьявольского культа',
   poster: 'https://example.invalid/poster.jpg',
-  providerId: 'anilibria',
+  providerId: 'kodik',
   genres: ['Фэнтези'],
   categories: ['watching'],
   addedAt: Date.now(),
@@ -214,7 +214,7 @@ describe('app integration', () => {
 
   it('lists every registered provider with health and capability information', async () => {
     const view = await renderScreen(<ProvidersScreen />);
-    for (const id of ['anilibria', 'anime365', 'shikimori', 'anidub']) {
+    for (const id of ['kodik', 'anime365', 'shikimori']) {
       await waitFor(() => expect(view.getByTestId(`provider-${id}`)).toBeTruthy());
     }
 
@@ -255,8 +255,8 @@ describe('app integration', () => {
     listsActions.setCategory(title, 'watching', true);
     const view = await renderScreen(<WatchlistScreen />);
 
-    await waitFor(() => expect(view.getByTestId('list-entry-anilibria:1')).toBeTruthy());
-    fireEvent.press(view.getByTestId('move-anilibria:1'));
+    await waitFor(() => expect(view.getByTestId('list-entry-kodik:serial-42758')).toBeTruthy());
+    fireEvent.press(view.getByTestId('move-kodik:serial-42758'));
     await waitFor(() => expect(useListsStore.getState().entries[title.id]?.categories).toContain('planned'));
   });
 

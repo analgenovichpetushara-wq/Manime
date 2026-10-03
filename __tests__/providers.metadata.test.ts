@@ -1,6 +1,7 @@
 import { mapEpisode as mapA365Episode, mapSeries, mapTranslation } from '@/providers/implementations/anime365/mapper';
 import { mapShikimoriAnime } from '@/providers/implementations/shikimori/mapper';
-import { AniDubProvider } from '@/providers/implementations/anidub/provider';
+import { KodikProvider } from '@/providers/implementations/kodik/provider';
+import { KodikApi } from '@/providers/implementations/kodik/api';
 import { a365Episode, a365Series, a365Translation, shikimoriAnime } from './fixtures/releases';
 
 describe('Anime365 (smotret-anime) metadata provider', () => {
@@ -62,17 +63,15 @@ describe('Shikimori metadata provider', () => {
   });
 });
 
-describe('AniDUB (token-gated)', () => {
-  it('reports itself as unavailable instead of faking data', async () => {
-    const provider = new AniDubProvider(undefined);
-    await expect((provider.search as unknown as (query: string, filters: unknown, page: number) => Promise<unknown>)('naruto', {}, 1)).rejects.toMatchObject({
-      code: 'PROVIDER_DISABLED',
+describe('Kodik (credential-gated)', () => {
+  it('reports the missing token instead of faking data', async () => {
+    const provider = new KodikProvider(new KodikApi({ baseUrl: 'https://kodik-api.com', token: '' }));
+    expect(provider.isConfigured).toBe(false);
+    await expect(provider.search('naruto', { query: 'naruto', genres: [], years: [], statuses: [], providerIds: [], voiceoverKinds: [] }, 1)).rejects.toMatchObject({
+      code: 'AUTHENTICATION_REQUIRED',
     });
-    await expect((provider.getEpisodes as unknown as (title: unknown) => Promise<unknown>)({})).rejects.toMatchObject({
-      code: 'PROVIDER_DISABLED',
-    });
+    await expect(provider.getStream()).rejects.toMatchObject({ code: 'STREAM_UNAVAILABLE' });
     expect(provider.descriptor.capabilities.publicApi).toBe(false);
-    expect(provider.descriptor.enabledByDefault).toBe(false);
-    expect(provider.descriptor.unavailableReasonKey).toBe('providers.anidub.requiresToken');
+    expect(provider.descriptor.unavailableReasonKey).toBe('providers.kodik.requiresToken');
   });
 });

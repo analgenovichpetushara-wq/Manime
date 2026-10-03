@@ -1,90 +1,133 @@
 # Providers
 
-AnimAlc talks to public APIs only. It never bypasses authentication, DRM, access
-controls, age gates or technical protection measures. Where an API requires
-credentials, the provider is registered but disabled and the reason is shown in
-**Settings → Providers**.
+AnimAlc talks to anime sources **only** through the provider abstraction
+(`src/providers/types.ts`) and the provider manager (`src/providers/manager.ts`).
+No screen imports a provider module, and no provider type leaks into the UI.
 
-## Abstraction
-
-```ts
-interface AnimeProvider {
-  readonly descriptor: ProviderDescriptor;      // id, title, base url, capabilities
-  search(query, filters, page): Promise<Paged<AnimeTitle>>;
-  getTitle(ref): Promise<AnimeTitle>;
-  getEpisodes(title): Promise<Episode[]>;
-  getAvailableVoiceovers(title): Promise<Voiceover[]>;
-  getStream(request): Promise<StreamBundle>;
-  getAvailableQualities(request): Promise<QualityVariant[]>;
-  healthCheck(): Promise<ProviderHealth>;
-}
+```
+UI → providerService → ProviderManager → provider implementations → HTTP
+                              ↕
+                    merge / normalize / cache / health / fallback
 ```
 
-`ProviderManager` owns registration, discovery, health, fallback, merged search
-and selection:
+## Active providers
 
-- **Registration/discovery** — `registry.ts` exposes `availableProviders()`;
-  a provider is used only when it is enabled and declares the capability.
-- **Health** — every probe is classified as `healthy`, `degraded`, `down`,
-  `disabled` or `unknown`. One failed probe degrades a source, three mark it down.
-  Probes are cached for 120 s; `runHealthCheck(true)` forces a refresh.
-- **Fallback** — `getStream` walks sources in order and returns the first playable
-  bundle; if none succeed it throws `STREAM_UNAVAILABLE`, which the player turns
-  into a translated error card with a retry button.
-- **Result merging** — `merge/` normalises and deduplicates titles across sources
-  (`isSameTitle`), keeping provider references so metadata, capabilities and
-  voiceovers enrich one another instead of duplicating entries.
+| Provider | Registered | Public API | search | metadata | episodes | voiceovers | qualities | streams |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **Kodik** | yes (primary) | no — partner token | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ (embed link only) |
+| Anime 365 (smotret-anime) | yes | yes | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ (login-gated) |
+| Shikimori | yes | yes | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 
-## Current sources
+Retired and **removed from the codebase** during the Kodik migration: Anilibria
+(API client, mapper, provider, tests, endpoints, env vars, strings) and
+AniDUB/AniBoom. Only `src/services/providerMigration.ts` still mentions those
+ids, to re-attach the user's local history (see *Data migration*).
 
-| Provider | Status | Search | Metadata | Episodes | Voiceovers | Streams | Notes |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| AniLiberty (Anilibria) | enabled | yes | yes | yes | yes | HLS 480/720/1080 | primary catalogue, intros/outros timecodes |
-| Anime365 (smotret-anime) | enabled | yes | yes | yes | yes | no | video links need a logged-in session, only metadata/voiceovers are used |
-| Shikimori | enabled | yes | yes | no | no | no | Russian titles, genres, scores for enrichment |
-| AniDUB / AniBoom | disabled | no | no | no | no | no | endpoint answers `401` without a personal bearer token — not bypassed |
+## Kodik
 
-Excluded after inspection: Anilibria v3 (dead), Sovetromantica (the domain no
-longer serves the project), Jikan (upstream was unavailable during the check).
+* Base URL `https://kodik-api.com` (`EXPO_PUBLIC_KODIK_BASE_URL`).
+* Authentication: partner **token** passed as the `token` query parameter.
+  Verified live: a missing/invalid token answers
+  `{"error":"Отсутствует или неверный токен"}` — the app maps that to
+  `AUTHENTICATION_REQUIRED`, never to a generic failure.
+* Endpoints used (all GET, JSON envelope `{time,total,results[],next_page}`):
+  * `/search` — by `title`, `id`, `shikimori_id`, `kinopoisk_id`, `imdb_id`,
+    `mdl_id`; filters `types`, `year`, `anime_kind`, `anime_status`,
+    `anime_genres`, `translation_id`, `translation_type`, `limit` (≤ 100).
+  * `/list` — catalogue/discovery (`sort`, `order`, cursor `next_page`).
+  * `/search?id=…&with_episodes=true&with_episodes_data=true` — seasons →
+    episodes, each with the official embed player link.
+  * `/search?id=…&limit=100` — one result per translation, which is how the
+    voiceover list for a material is derived.
+* Response fields mapped: `id`, `type`, `link`, `title`, `title_orig`,
+  `other_title`, `translation{id,title,type}`, `year`, `last_season`,
+  `last_episode`, `episodes_count`, `shikimori_id`, `quality`, `screenshots`,
+  `seasons{}`, `material_data{description,genres,anime_kind,anime_status,duration,rating_mpaa,poster,anime_studios}`.
+  Fields Kodik does not publish (score, votes) stay `undefined` — they are never
+  invented.
+* **Streams:** Kodik's documented API returns an embed player link
+  (`//kodik.info/serial/{id}/{hash}/720p`), not a media URL. The direct HLS
+  manifests are produced by the player's obfuscated internal endpoint, which
+  AnimAlc does not call. `getStream()` therefore throws `STREAM_UNAVAILABLE` and
+  the episode keeps `playerUrl`, so the player offers *Open in the source
+  player*. Nothing is bypassed, and nothing is faked.
+* Qualities are derived from the real `quality` label (`WEB-DLRip 720p` → 720p)
+  and the player link suffix — not from a hardcoded list.
 
-## Field normalisation
+### Keeping the token out of the app
 
-Each implementation has a mapper that turns the provider payload into the shared
-domain model and fails loudly on malformed data:
+`server/kodik-gateway.mjs` is the supported production layout:
 
-- AniLiberty: quality keys map to `QualityVariant`, relative HLS urls are
-  absolutised against the API host, `opening`/`ending` become `skipIntro`/`skipOutro`.
-- Anime365: only `id` and `episodeFull` are public per episode; `duration` is in
-  minutes and is converted to seconds.
-- Shikimori: `shikimori.io` is used as the transport host; only metadata is read.
-- AniDUB: throws `PROVIDER_DISABLED` in `search`/`getStream`, so it can never be
-  selected for playback.
-
-## Health failure taxonomy
-
-`classifyHealth` / `AppError` cover the required cases: unavailable, timeout,
-HTTP error, invalid JSON, invalid payload (missing required fields), missing
-episode, unavailable stream and unsupported format.
-
-## Live verification
-
-```bash
-npm run providers:check                      # probe every public endpoint
-npm run providers:check -- --provider anilibria --query "магистр"
-npm run providers:check -- --json > report.json
+```
+KODIK_API_TOKEN=… npm run server:kodik      # PORT 8790, HOST 0.0.0.0
+EXPO_PUBLIC_KODIK_GATEWAY_URL=https://gateway.example.invalid
 ```
 
-The script performs the same request chain the app does (search → metadata →
-episodes → voiceovers → stream) and prints status, latency and item counts. It
-reports sources that need credentials instead of attempting to bypass them.
+The gateway is deliberately narrow:
 
-## Adding a source
+* routes: `/health`, `/search`, `/list`, `/material?id=`, `/translations?id=`;
+  everything else is a 404 — it is not an open proxy;
+* query parameters are whitelisted per route and validated (`limit` ≤ 100,
+  `with_*` coerced to booleans, oversize values dropped, client `token`
+  ignored);
+* the token is injected server-side and never appears in a response;
+* per-client rate limiting (`RATE_LIMIT_PER_MIN`, default 30);
+* upstream failures are mapped to `401 AUTHENTICATION_REQUIRED`,
+  `429 RATE_LIMITED`, `404 NOT_FOUND`, `502 UPSTREAM_ERROR`, `504 TIMEOUT`;
+* without `KODIK_API_TOKEN` every data route answers
+  `503 AUTHENTICATION_REQUIRED` and `/health` reports `configured: false`.
 
-1. Create `src/providers/implementations/<id>/` with `provider.ts`, `types.ts`,
-   `mapper.ts` and `__tests__`-style coverage in `__tests__/providers.<id>.test.ts`
-   (see `__tests__/fixtures/releases.ts` for the fixture pattern).
-2. Implement `AnimeProvider`, declare real capabilities and an honest
-   `descriptor`.
-3. Register it in `src/providers/registry.ts`.
-4. Run `npm run typecheck && npm run test` and add an i18n entry for its
-   description in both `ru.json` and `en.json`.
+`EXPO_PUBLIC_KODIK_TOKEN` exists for local development only. A token baked into
+a shipped bundle is public, so production always uses the gateway.
+
+When neither a token nor a gateway is configured the descriptor's
+`isConfigured()` returns `false`, the manager disables Kodik, and Settings →
+Sources shows `providers.kodik.requiresToken` instead of a source that can only
+fail.
+
+## Environment variables
+
+| Variable | Meaning |
+| --- | --- |
+| `EXPO_PUBLIC_KODIK_GATEWAY_URL` | AnimAlc Kodik gateway (recommended) |
+| `EXPO_PUBLIC_KODIK_BASE_URL` | direct Kodik API base, default `https://kodik-api.com` |
+| `EXPO_PUBLIC_KODIK_TOKEN` | dev-only partner token — never ship it |
+| `EXPO_PUBLIC_ANIME365_BASE_URL` | default `https://smotret-anime.online/api` |
+| `EXPO_PUBLIC_SHIKIMORI_BASE_URL` | default `https://shikimori.io/api` |
+| `KODIK_API_TOKEN` | server-side token for the gateway |
+
+## Errors
+
+Every provider failure becomes an `AppError` with a stable code
+(`src/core/errors/AppError.ts`): `NETWORK_UNAVAILABLE`, `TIMEOUT`,
+`AUTHENTICATION_REQUIRED`, `RATE_LIMITED`, `HTTP_ERROR`, `INVALID_JSON`,
+`INVALID_PAYLOAD`, `NOT_FOUND`, `MISSING_EPISODE`, `STREAM_UNAVAILABLE`,
+`UNSUPPORTED_MEDIA`, `PROVIDER_UNAVAILABLE`, `PROVIDER_DISABLED`. The UI renders
+`errors.<code>` strings, never a stack trace. A failing provider is recorded as
+a search failure and the manager continues with the healthy ones — one dead
+source never blanks the screen or crashes the app.
+
+## Caching
+
+`src/services/titleCache.ts` persists normalised data with TTLs from
+`CacheTtl`: search 5 min, titles 6 h, episodes 30 min, voiceovers 30 min,
+genres 24 h. Manager health records live for 2 min. **Stream URLs are never
+cached** — Kodik does not publish any, and providers that do are re-resolved per
+playback so expiring links are not replayed.
+
+## Data migration
+
+Watch history stores `providerId`/`titleId`. Entries that point at a retired
+provider are re-attached by title on first launch after the migration
+(`migrateRetiredProviders`); when no match is found the entry is **kept** and
+tagged `legacyProviderId`. Nothing is deleted because a source went away.
+
+## Live audit
+
+```
+npm run providers:check                       # all providers
+npm run providers:check -- --provider kodik --query "Наруто"
+```
+
+The script reports what each endpoint actually returned, including credential
+errors, and never substitutes fake data.

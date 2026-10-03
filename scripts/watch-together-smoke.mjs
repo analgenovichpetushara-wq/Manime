@@ -92,7 +92,7 @@ async function run() {
   host.send({
     type: 'room:create',
     displayName: 'Host',
-    playback: { titleId: 'anilibria:413', episodeId: 'e1', episodeOrdinal: 1, positionSec: 120, isPlaying: true, rate: 1 },
+    playback: { titleId: 'kodik:serial-413', episodeId: 'e1', episodeOrdinal: 1, positionSec: 120, isPlaying: true, rate: 1 },
   });
   const snapshot = await host.next((message) => message.type === 'room:state');
   const code = snapshot.code;
@@ -114,7 +114,7 @@ async function run() {
   const rated = await guest.next((message) => message.type === 'playback:state' && message.playback?.rate === 1.25);
   check('rate change is relayed', rated.playback.rate === 1.25);
 
-  host.send({ type: 'episode:change', episodeId: 'e2', episodeOrdinal: 2, titleId: 'anilibria:413' });
+  host.send({ type: 'episode:change', episodeId: 'e2', episodeOrdinal: 2, titleId: 'kodik:serial-413' });
   const episode = await guest.next((message) => message.type === 'playback:state' && message.playback?.episodeOrdinal === 2);
   check('episode change is relayed and resets position', episode.playback.episodeOrdinal === 2 && episode.playback.positionSec === 0);
 

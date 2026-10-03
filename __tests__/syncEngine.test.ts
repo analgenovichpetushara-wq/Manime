@@ -11,7 +11,7 @@ import type { SyncPlaybackState } from '@/data/models/watchTogether';
 
 function remote(overrides: Partial<SyncPlaybackState> = {}): SyncPlaybackState {
   return {
-    titleId: 'anilibria:1',
+    titleId: 'kodik:serial-1',
     episodeId: 'e1',
     episodeOrdinal: 1,
     positionSec: 100,

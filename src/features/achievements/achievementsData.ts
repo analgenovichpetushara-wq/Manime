@@ -60,7 +60,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   // Providers
   { id: 'provider-first', titleKey: 'ach.providerFirst.title', descriptionKey: 'ach.providerFirst.description', icon: 'server', category: 'provider', target: 1, progress: (c) => c.distinctProviders },
   { id: 'provider-all', titleKey: 'ach.providerAll.title', descriptionKey: 'ach.providerAll.description', icon: 'server', category: 'provider', target: 3, progress: (c) => c.distinctProviders },
-  { id: 'provider-loyal', titleKey: 'ach.providerLoyal.title', descriptionKey: 'ach.providerLoyal.description', icon: 'server', category: 'provider', target: 100, progress: (c) => Math.max(c.providerCount('anilibria'), c.providerCount('anime365')) },
+  { id: 'provider-loyal', titleKey: 'ach.providerLoyal.title', descriptionKey: 'ach.providerLoyal.description', icon: 'server', category: 'provider', target: 100, progress: (c) => Math.max(c.providerCount('kodik'), c.providerCount('anime365')) },
   { id: 'provider-fallback', titleKey: 'ach.providerFallback.title', descriptionKey: 'ach.providerFallback.description', icon: 'shuffle', category: 'provider', target: 25, progress: (c) => c.providerCount('anime365') },
 
   // Voiceovers

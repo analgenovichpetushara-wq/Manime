@@ -6,19 +6,22 @@
 | --- | --- |
 | `npm run typecheck` | `tsc --noEmit` over `src` and `__tests__` |
 | `npm run lint` | ESLint (eslint-config-expo + react-hooks rules) |
-| `npm test` | Jest (`jest-expo` preset, 18 suites / 147 tests) |
+| `npm test` | Jest (`jest-expo` preset, 20 suites / 158 tests) |
 | `npm run export:android` | Metro production bundle for Android (validates `@/` resolution) |
 | `npm run export:ios` | Metro production bundle for iOS |
 | `npm run server:smoke` | runtime check: boots the relay and drives two real WebSocket clients |
 | `npm run verify` | typecheck + lint + tests + sync smoke + both platform bundles |
 | `npm run providers:check` | live probe of every public provider API |
 | `npm run server:watchtogether` | runs the Watch Together relay node |
+| `npm run server:kodik` | runs the Kodik gateway that holds the partner token server-side |
 
 ## Coverage map
 
 | Suite | Area |
 | --- | --- |
-| `__tests__/providers.anilibria.test.ts` | AniLiberty mapping: releases, episodes, voiceovers, quality variants, HLS absolutisation, malformed payloads |
+| `__tests__/providers.kodik.test.ts` | Kodik mapping from captured payloads (material → model, seasons → episodes, translations, derived qualities) and provider behaviour: search, episode/voiceover resolution, token error → `AUTHENTICATION_REQUIRED`, rate limit, malformed payload, network failure, missing material, no fabricated stream, health probe, and merged search with Kodik unauthenticated |
+| `__tests__/kodikGateway.test.ts` | gateway as a real node process against a stubbed upstream: token injected server-side and never echoed, parameter whitelist, junk routes 404, Kodik token failure → 401, upstream timeout → 504, rate limiting → 429, 503 without a token |
+| `__tests__/providerMigration.test.ts` | retired-provider data migration: re-matched entries are rebound, unmatched ones are preserved with `legacyProviderId`, the persisted document is rewritten once, and a broken store never breaks bootstrap |
 | `__tests__/providers.metadata.test.ts` | Anime365 + Shikimori mapping, duration normalisation, degraded network handling |
 | `__tests__/providerManager.test.ts` | registration, capability filtering, health classification, fallback ordering, merged/deduplicated search, failure isolation |
 | `__tests__/theme.test.ts` | every preset has a complete light/dark token set, presets change typography/shapes/presentation, accent application, AMOLED, contrast, font scaling, palette immutability |
@@ -36,11 +39,15 @@
 | `__tests__/playback.player.e2e.test.tsx` | end-to-end: Player screen resolves a real provider stream plan, play/pause, episode drawer, persisted resumable progress |
 | `__tests__/playback.stream-failure.e2e.test.tsx` | end-to-end resilience: unknown episode / unavailable stream keeps the player mounted and operable |
 
-Provider fixtures live in `__tests__/fixtures/releases.ts` and mirror the shape of
-the real APIs, so mapping regressions surface without network access.
+Provider fixtures live in `__tests__/fixtures/kodik.ts` and
+`__tests__/fixtures/releases.ts`; both mirror recorded responses from the real
+APIs, so mapping regressions surface without network access.
+`__tests__/helpers/playbackProviderDouble.ts` is a test-only provider used to
+exercise the streaming half of the player chain: Kodik publishes an embed link
+rather than a media URL, so no shipped provider can serve that step.
 
 The end-to-end suites never touch the network: `__tests__/helpers/playbackHarness.tsx`
-installs an offline `fetch` stub for the public AniLiberty routes and then runs the
+installs an offline `fetch` stub for the recorded provider responses and then runs the
 real chain (http client → provider → mapper → playback plan → player). The native
 modules Jest cannot host are stubbed once in `jest.setup.js` (reanimated/worklets
 and `expo-video`), so the player logic under test is the shipped one.

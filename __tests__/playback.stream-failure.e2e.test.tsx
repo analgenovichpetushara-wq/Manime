@@ -32,7 +32,7 @@ describe('provider stream failures', () => {
           <Stack.Screen
             name="Player"
             component={PlayerScreen}
-            initialParams={{ title: playerTitle(), episodeId: 'missing-episode', providerId: 'anilibria' }}
+            initialParams={{ title: playerTitle(), episodeId: 'missing-episode', providerId: 'kodik' }}
           />
         </Stack.Navigator>,
       ),

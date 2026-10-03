@@ -151,7 +151,7 @@ describe('watch together over a real websocket server', () => {
     host.sendPause(95);
     await waitFor(() => guestPlayback.some((state) => !state.isPlaying && Math.abs(state.positionSec - 95) < 0.001), 10_000, 'pause propagation');
 
-    host.sendEpisodeChange('e2', 2, 'anilibria:1');
+    host.sendEpisodeChange('e2', 2, 'kodik:serial-1');
     await waitFor(() => guestPlayback.some((state) => state.episodeId === 'e2' && state.episodeOrdinal === 2), 10_000, 'episode propagation');
 
     guest.sendChat('привет из комнаты');

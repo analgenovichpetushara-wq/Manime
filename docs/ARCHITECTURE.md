@@ -25,7 +25,7 @@ src/
     health.ts             probe classification (unavailable, timeout, HTTP,
                           invalid JSON, missing fields/episode, stream, format)
     merge/                cross-provider deduplication and metadata merging
-    implementations/      anilibria, anime365, shikimori, anidub
+    implementations/      kodik, anime365, shikimori
   services/               orchestration between stores, providers and the cache
   store/                  persisted stores (zustand + custom persistence layer)
   theme/                  config-driven theme engine, 13 presets, effects engine,
