@@ -50,8 +50,21 @@ const PARAM_WHITELIST = {
     'with_episodes_data',
   ],
   '/get-player': ['title', 'ID', 'url', 'hasPlayer'],
+  // Documented catalogue endpoints — they take no forwarded parameters.
+  '/genres': [],
+  '/countries': [],
+  '/years': [],
+  '/translations/v2': [],
+  '/qualities/v2': [],
   '/list': ['types', 'year', 'anime_kind', 'anime_status', 'genres', 'anime_genres', 'sort', 'order', 'limit', 'with_material_data', 'with_seasons', 'with_episodes', 'with_episodes_data'],
 };
+
+/**
+ * Catalogue endpoints from the documented Kodik API (`/genres`, `/countries`,
+ * `/years`, `/translations/v2`, `/qualities/v2`). They are proxied as-is; the
+ * gateway only injects the token.
+ */
+const CATALOGUE_ROUTES = new Set(['/genres', '/countries', '/years', '/translations/v2', '/qualities/v2']);
 
 const MAX_LIMIT = 100;
 
@@ -235,6 +248,13 @@ export function createKodikGateway(options = {}) {
         return;
       }
       const result = await upstream('/get-player', search);
+      res.writeHead(result.status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result.body));
+      return;
+    }
+
+    if (CATALOGUE_ROUTES.has(url.pathname)) {
+      const result = await upstream(url.pathname, sanitizeQuery(url.searchParams, url.pathname));
       res.writeHead(result.status, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(result.body));
       return;

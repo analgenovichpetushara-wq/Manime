@@ -186,6 +186,19 @@ describe('Kodik provider', () => {
     );
   });
 
+  it('reads the genre catalogue from the documented /genres endpoint', async () => {
+    const requested = installStub([
+      {
+        match: (url) => url.includes('/genres'),
+        body: { time: '1ms', total: 2, results: [{ id: 1, title: 'Экшен' }, { id: 2, title: ' Драма ' }] },
+      },
+    ]);
+    const provider = new KodikProvider(api);
+
+    await expect(provider.getGenres()).resolves.toEqual(['Экшен', 'Драма']);
+    expect([...requested][0]).toContain('/genres?');
+  });
+
   it('refuses to invent a stream and reports the health probe honestly', async () => {
     installStub([{ match: (url) => url.includes('/list'), body: kodikSearchResponse([kodikRelease], 1) }]);
     const provider = new KodikProvider(api);

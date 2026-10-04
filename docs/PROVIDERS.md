@@ -42,6 +42,9 @@ ids, to re-attach the user's local history (see *Data migration*).
   * `/get-player` — `{found, allowed, quality, translation, link}`: the
     documented way to ask Kodik for a title's player link (`title`, `ID`, `url`,
     `hasPlayer`).
+  * `/genres` — the documented genre catalogue (`getGenres()`), proxied
+    together with the other reference endpoints `/countries`, `/years`,
+    `/translations/v2` and `/qualities/v2`.
 * Response fields mapped: `id`, `type`, `link`, `title`, `title_orig`,
   `other_title`, `translation{id,title,type}`, `year`, `last_season`,
   `last_episode`, `episodes_count`, `shikimori_id`, `quality`, `screenshots`,
@@ -61,6 +64,26 @@ ids, to re-attach the user's local history (see *Data migration*).
 * Qualities are derived from the real `quality` label (`WEB-DLRip 720p` → 720p)
   and the player link suffix — not from a hardcoded list.
 
+### What is deliberately *not* implemented
+
+Third-party wrappers such as `kodikwrapper` split their surface in two, and the
+split matters:
+
+* `Client` implements "только публичное api" — the documented endpoints listed
+  above. AnimAlc follows exactly that surface (including `/get-player` and the
+  reference catalogues).
+* `VideoLinks.getLinks()` / `getActualVideoInfoEndpoint()` / `getPublicToken()`
+  reach the direct `cloud.kodik-storage.com` manifests by parsing the player
+  page, reading its JS chunk and calling an internal endpoint that Kodik
+  rotates on purpose (their own docs: "kodik начал часто менять endpoint";
+  example `playerDomain: 'kodikplayer.com'`, `videoInfoEndpoint: '/ftor'`),
+  plus harvesting a token out of Kodik's player script.
+
+That is circumventing a technical protection measure, not using an API, so
+AnimAlc does not do it — the rotation and obfuscation *are* the access control.
+If Kodik ever exposes media URLs through the documented API, `getStream()` is
+the single place that would implement them.
+
 ### Keeping the token out of the app
 
 `server/kodik-gateway.mjs` is the supported production layout:
@@ -73,7 +96,9 @@ EXPO_PUBLIC_KODIK_GATEWAY_URL=https://gateway.example.invalid
 The gateway is deliberately narrow:
 
 * routes: `/health`, `/search`, `/list`, `/material?id=`, `/translations?id=`,
-  `/get-player`; everything else is a 404 — it is not an open proxy;
+  `/get-player`, and the reference catalogues `/genres`, `/countries`, `/years`,
+  `/translations/v2`, `/qualities/v2`; everything else is a 404 — it is not an
+  open proxy;
 * query parameters are whitelisted per route and validated (`limit` ≤ 100,
   `with_*` coerced to booleans, oversize values dropped, client `token`
   ignored);

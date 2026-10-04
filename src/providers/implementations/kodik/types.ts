@@ -112,6 +112,12 @@ export interface KodikPlayerResponse {
   link?: string | null;
 }
 
+/** Catalogue entry from the documented `/genres` endpoint. */
+export interface KodikGenre {
+  id: number;
+  title: string;
+}
+
 /** Error body: Kodik answers with `{"error": "…"}` (e.g. an invalid token). */
 export interface KodikErrorBody {
   error: string;

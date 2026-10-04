@@ -137,6 +137,19 @@ describe('Kodik gateway (real process)', () => {
     expect(response.raw).not.toContain('super-secret-token');
   });
 
+  it('proxies the documented catalogue endpoints with the token injected', async () => {
+    kodik.calls.length = 0;
+    const genres = await httpGet(`${gateway.origin}/genres?token=leak&evil=1`);
+    expect(genres.status).toBe(200);
+    expect(kodik.calls[0]?.url).toContain('/genres?');
+    expect(kodik.calls[0]?.query.get('token')).toBe('super-secret-token');
+    expect(kodik.calls[0]?.query.has('evil')).toBe(false);
+
+    const qualities = await httpGet(`${gateway.origin}/qualities/v2`);
+    expect(qualities.status).toBe(200);
+    expect(kodik.calls[1]?.url).toContain('/qualities/v2?');
+  });
+
   it('whitelists parameters and rejects junk routes', async () => {
     kodik.calls.length = 0;
     await httpGet(`${gateway.origin}/search?title=naruto&limit=9999&token=leak&evil=1`);

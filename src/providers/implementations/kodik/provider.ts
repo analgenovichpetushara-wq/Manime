@@ -19,7 +19,7 @@ import {
   mapRelease,
   mapVoiceovers,
 } from '@/providers/implementations/kodik/mapper';
-import type { KodikQueryParams, KodikRelease } from '@/providers/implementations/kodik/types';
+import type { KodikQueryParams } from '@/providers/implementations/kodik/types';
 import type { AnimeProvider, ProviderDescriptor, ProviderHealth } from '@/providers/types';
 
 const PAGE_SIZE = 20;
@@ -170,14 +170,13 @@ export class KodikProvider implements AnimeProvider {
     });
   }
 
+  /** Documented `/genres` catalogue, mapped onto the display names. */
   async getGenres(): Promise<string[]> {
     this.assertConfigured();
-    const response = await this.api.list({ limit: 40, with_material_data: true });
-    const genres = new Set<string>();
-    response.results.forEach((release: KodikRelease) => {
-      (release.material_data?.genres ?? []).forEach((genre) => genres.add(genre));
-    });
-    return [...genres];
+    const genres = await this.api.genres();
+    return genres
+      .map((genre) => genre.title?.trim())
+      .filter((title): title is string => Boolean(title));
   }
 
   async getSchedule(): Promise<AnimeTitle[]> {

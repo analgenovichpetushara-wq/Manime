@@ -3,6 +3,7 @@ import { AppError } from '@/core/errors/AppError';
 import { httpJson } from '@/core/http/httpClient';
 import type {
   KodikErrorBody,
+  KodikGenre,
   KodikListResponse,
   KodikPlayerResponse,
   KodikQueryParams,
@@ -15,6 +16,7 @@ export const KODIK_ID = 'kodik';
 export const KODIK_ENDPOINTS = {
   search: '/search',
   list: '/list',
+  genres: '/genres',
   getPlayer: '/get-player',
 } as const;
 
@@ -156,6 +158,16 @@ export class KodikApi {
       order: 'desc',
       ...params,
     });
+  }
+
+  /**
+   * `/genres` — the documented catalogue endpoint. Kodik publishes its genre
+   * list, so AnimAlc reads it instead of guessing genres from a page of
+   * releases.
+   */
+  async genres(): Promise<KodikGenre[]> {
+    const response = await this.request<KodikListResponse<KodikGenre>>(KODIK_ENDPOINTS.genres, {});
+    return response.results;
   }
 
   /** Single material with its episode list (embed links per season/episode). */

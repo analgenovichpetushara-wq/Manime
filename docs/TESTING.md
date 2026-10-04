@@ -6,7 +6,7 @@
 | --- | --- |
 | `npm run typecheck` | `tsc --noEmit` over `src` and `__tests__` |
 | `npm run lint` | ESLint (eslint-config-expo + react-hooks rules) |
-| `npm test` | Jest (`jest-expo` preset, 22 suites / 166 tests) |
+| `npm test` | Jest (`jest-expo` preset, 22 suites / 168 tests) |
 | `npm run export:android` | Metro production bundle for Android (validates `@/` resolution) |
 | `npm run export:ios` | Metro production bundle for iOS |
 | `npm run server:smoke` | runtime check: boots the relay and drives two real WebSocket clients |
@@ -21,7 +21,7 @@
 | Suite | Area |
 | --- | --- |
 | `__tests__/providers.kodik.test.ts` | Kodik mapping from captured payloads (material → model, seasons → episodes, translations, derived qualities) and provider behaviour: search, episode/voiceover resolution, token error → `AUTHENTICATION_REQUIRED`, rate limit, malformed payload, network failure, missing material, no fabricated stream, health probe, and merged search with Kodik unauthenticated |
-| `__tests__/kodikGateway.test.ts` | gateway as a real node process against a stubbed upstream: token injected server-side and never echoed, parameter whitelist (`/get-player` included), junk routes 404, Kodik token failure → 401, upstream timeout → 504, rate limiting → 429, 503 without a token |
+| `__tests__/kodikGateway.test.ts` | gateway as a real node process against a stubbed upstream: token injected server-side and never echoed, parameter whitelist (`/get-player` included), documented catalogue routes (`/genres`, `/qualities/v2`, …) proxied, junk routes 404, Kodik token failure → 401, upstream timeout → 504, rate limiting → 429, 503 without a token |
 | `__tests__/embedPlayer.test.tsx` | source embed player: the official Kodik link is handed to the web view, and any non-http(s) link is refused |
 | `__tests__/androidSigning.test.ts` | release signing: the prebuild plugin injects a keystore-driven `signingConfigs` block (no literal secrets), blocks unsigned release builds instead of emitting an uninstallable APK, is idempotent, is registered in `app.config.ts`, and the generated `android/app/build.gradle` carries it |
 | `__tests__/providerMigration.test.ts` | retired-provider data migration: re-matched entries are rebound, unmatched ones are preserved with `legacyProviderId`, the persisted document is rewritten once, and a broken store never breaks bootstrap |
