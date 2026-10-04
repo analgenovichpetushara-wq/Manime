@@ -42,7 +42,13 @@ publishes CVH links: AniLibria's `external_player` (see below). When that field
 holds a `/cdn-iframe/<id>/…` url, the mapper reuses the id as a CVH
 `providerRef`, so a title found by AniLibria search is played natively through
 CVH's open API — episodes, dubs, qualities and HLS, no scraping involved.
-A pasted link or `cvh:<id>` still works on its own. A media item is addressed by the publisher's id,
+A pasted link or `cvh:<id>` still works on its own: the search screen detects it
+and shows an explicit *Open in the CVH player* action.
+
+The playlist holds every episode once per dub, so the episode list keeps one
+entry per episode and the dubs live behind the voiceover switch
+(`getAvailableVoiceovers()` + `voiceoverId` on `getStream()`); a dub missing for
+a given episode falls back to one that exists instead of failing playback. A media item is addressed by the publisher's id,
 which lives on the site embedding the player; discovering ids by name would mean
 scraping that site, which AnimAlc does not do. Instead `parseCvhReference()`
 accepts what a user can paste — a `/cdn-iframe/<id>/<season>/<episode>?dubbing=…`

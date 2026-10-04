@@ -1,5 +1,5 @@
 import { CvhApi, parseCvhReference } from '@/providers/implementations/cvh/api';
-import { mapEpisodes, mapQualities, mapStreams, mapTitle, mapVoiceovers, voiceoverRefId } from '@/providers/implementations/cvh/mapper';
+import { mapEpisodes, mapQualities, mapStreams, mapTitle, mapVoiceovers, selectVideoId, voiceoverRefId } from '@/providers/implementations/cvh/mapper';
 import { CvhProvider } from '@/providers/implementations/cvh/provider';
 import { createProviderManager } from '@/providers/registry';
 import { cvhPlaylist, cvhVideo } from './fixtures/cvh';
@@ -69,7 +69,8 @@ describe('CVH mapping (captured payloads)', () => {
     expect(title.providerRefs).toEqual([{ providerId: 'cvh', refId: '51019' }]);
 
     const episodes = mapEpisodes(title.id, items);
-    expect(episodes).toHaveLength(5);
+    // One entry per episode: the three dubs of episode 1 collapse into one.
+    expect(episodes).toHaveLength(2);
     expect(episodes[0]).toMatchObject({
       id: 'cvh:10417869052469',
       ordinal: 1,
@@ -78,6 +79,18 @@ describe('CVH mapping (captured payloads)', () => {
       isAvailable: true,
       voiceoverRefId: 'cvh:voice:anidub-online',
     });
+  });
+
+  it('lists each episode once and keeps the dubs behind the voiceover switch', () => {
+    const episodes = mapEpisodes('cvh:51019', items);
+    // Five playlist entries = two episodes in three and two dubs.
+    expect(episodes.map((episode) => episode.ordinal)).toEqual([1, 2]);
+    expect(selectVideoId(items, 1)).toBe('10417869052469');
+    expect(selectVideoId(items, 1, 'cvh:voice:anilibriatv')).toBe('7043868678752');
+    // A dub that is missing for this episode falls back to one that exists
+    // instead of failing playback outright.
+    expect(selectVideoId(items, 2, 'cvh:voice:dream-cast')).toBe('10417890023989');
+    expect(selectVideoId(items, 99)).toBeUndefined();
   });
 
   it('derives one voiceover per studio and keeps subtitles distinct', () => {
@@ -125,6 +138,19 @@ describe('CVH provider', () => {
     expect(bundle.sources.length).toBeGreaterThan(1);
     // Signed CDN links expire quickly, so the bundle says when.
     expect(bundle.expiresAt).toBeGreaterThan(Date.now());
+  });
+
+  it('streams the dub the user picked', async () => {
+    const requested = installStub([
+      { match: (url) => url.includes('/playlist'), body: cvhPlaylist },
+      { match: (url) => url.includes('/video/'), body: cvhVideo },
+    ]);
+    const manager = createProviderManager();
+    const title = await manager.getTitle('cvh', '51019');
+    const { episodes } = await manager.getEpisodes(title);
+
+    await manager.getStream(title, episodes[0]!, { voiceoverId: 'cvh:voice:anilibriatv' });
+    expect(requested.some((url) => url.includes('/video/7043868678752'))).toBe(true);
   });
 
   it('never pretends to search and reports stream failures honestly', async () => {

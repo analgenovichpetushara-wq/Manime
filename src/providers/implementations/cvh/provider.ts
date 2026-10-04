@@ -1,7 +1,7 @@
 import type { AnimeTitle, Episode, Paged, QualityVariant, StreamBundle, Voiceover } from '@/data/models/anime';
 import { AppError } from '@/core/errors/AppError';
 import { CvhApi, CVH_ID } from '@/providers/implementations/cvh/api';
-import { mapEpisodes, mapQualities, mapStreams, mapTitle, mapVoiceovers } from '@/providers/implementations/cvh/mapper';
+import { mapEpisodes, mapQualities, mapStreams, mapTitle, mapVoiceovers, selectVideoId } from '@/providers/implementations/cvh/mapper';
 import type { CvhPlaylist } from '@/providers/implementations/cvh/api';
 import type { AnimeProvider, ProviderDescriptor, ProviderHealth } from '@/providers/types';
 
@@ -95,20 +95,29 @@ export class CvhProvider implements AnimeProvider {
     return mapVoiceovers(title.id, playlist.items);
   }
 
-  async getAvailableQualities(_title: AnimeTitle, episode: Episode): Promise<QualityVariant[]> {
-    const video = await this.api.video(episode.refId);
-    const sources = mapStreams(_title.id, episode, video);
+  /** Resolves the episode+dub pair the user picked onto a concrete video id. */
+  private async videoIdFor(title: AnimeTitle, episode: Episode, voiceoverId?: string): Promise<string> {
+    const playlist = await this.loadPlaylist(title.refId);
+    const videoId = selectVideoId(playlist.items, episode.ordinal, voiceoverId ?? episode.voiceoverRefId);
+    if (!videoId) return episode.refId;
+    return videoId;
+  }
+
+  async getAvailableQualities(title: AnimeTitle, episode: Episode, voiceoverId?: string): Promise<QualityVariant[]> {
+    const video = await this.api.video(await this.videoIdFor(title, episode, voiceoverId));
+    const sources = mapStreams(title.id, episode, video);
     return mapQualities(sources);
   }
 
-  async getStream(title: AnimeTitle, episode: Episode): Promise<StreamBundle> {
-    const video = await this.api.video(episode.refId);
+  async getStream(title: AnimeTitle, episode: Episode, options?: { voiceoverId?: string }): Promise<StreamBundle> {
+    const videoId = await this.videoIdFor(title, episode, options?.voiceoverId);
+    const video = await this.api.video(videoId);
     const sources = mapStreams(title.id, episode, video);
     if (!sources.length) {
       throw new AppError({
         code: 'STREAM_UNAVAILABLE',
         providerId: CVH_ID,
-        message: `CdnVideoHub returned no playable links for video ${episode.refId}`,
+        message: `CdnVideoHub returned no playable links for video ${videoId}`,
       });
     }
     return {

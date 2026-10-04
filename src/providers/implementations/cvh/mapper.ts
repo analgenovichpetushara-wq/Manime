@@ -71,11 +71,34 @@ export function mapEpisode(titleId: string, item: CvhPlaylistItem, durationSec?:
   };
 }
 
+/**
+ * One entry per episode, not per dub: a playlist holds the same episode once
+ * for every studio, and the episode list would otherwise repeat each number
+ * five times. Dubs stay reachable through `getAvailableVoiceovers()` and are
+ * selected with `selectVideoId()`.
+ */
 export function mapEpisodes(titleId: string, items: CvhPlaylistItem[]): Episode[] {
-  return items
+  const byEpisode = new Map<number, CvhPlaylistItem>();
+  items
     .filter((item) => item.vkId)
-    .map((item) => mapEpisode(titleId, item))
-    .sort((a, b) => a.ordinal - b.ordinal || (a.voiceoverRefId ?? '').localeCompare(b.voiceoverRefId ?? ''));
+    .forEach((item) => {
+      const ordinal = item.episode ?? 1;
+      if (!byEpisode.has(ordinal)) byEpisode.set(ordinal, item);
+    });
+  return [...byEpisode.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, item]) => mapEpisode(titleId, item));
+}
+
+/** The `vkId` of one episode in one particular dub (falls back to any dub). */
+export function selectVideoId(items: CvhPlaylistItem[], ordinal: number, wantedVoiceover?: string): string | undefined {
+  const pool = items.filter((item) => item.vkId && (item.episode ?? 1) === ordinal);
+  if (!pool.length) return undefined;
+  if (wantedVoiceover) {
+    const exact = pool.find((item) => voiceoverRefId(item.voiceStudio) === wantedVoiceover);
+    if (exact) return String(exact.vkId);
+  }
+  return String(pool[0]?.vkId);
 }
 
 export function mapVoiceovers(titleId: string, items: CvhPlaylistItem[]): Voiceover[] {

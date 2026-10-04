@@ -6,7 +6,7 @@
 | --- | --- |
 | `npm run typecheck` | `tsc --noEmit` over `src` and `__tests__` |
 | `npm run lint` | ESLint (eslint-config-expo + react-hooks rules) |
-| `npm test` | Jest (`jest-expo` preset, 24 suites / 192 tests) |
+| `npm test` | Jest (`jest-expo` preset, 24 suites / 194 tests) |
 | `npm run export:android` | Metro production bundle for Android (validates `@/` resolution) |
 | `npm run export:ios` | Metro production bundle for iOS |
 | `npm run server:smoke` | runtime check: boots the relay and drives two real WebSocket clients |

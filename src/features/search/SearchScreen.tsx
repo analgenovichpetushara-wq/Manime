@@ -15,6 +15,7 @@ import { useAppShell } from '@/navigation/AppShell';
 import { EMPTY_FILTERS, type AnimeTitle, type SearchFilters } from '@/data/models/anime';
 import { fetchGenres, searchTitles } from '@/services/providerService';
 import { SearchFiltersSheet } from '@/features/search/SearchFiltersSheet';
+import { parseCvhReference } from '@/providers/implementations/cvh/api';
 import { debounce } from '@/core/utils/async';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -26,6 +27,12 @@ export function SearchScreen() {
 
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>({ ...EMPTY_FILTERS });
+  /**
+   * CdnVideoHub has no catalogue, so its player is reached with a link or an id
+   * instead of a title. Detecting it here makes that path visible instead of a
+   * hidden trick.
+   */
+  const cvhReference = useMemo(() => parseCvhReference(query), [query]);
   const [results, setResults] = useState<AnimeTitle[]>([]);
   const [genres, setGenres] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -119,6 +126,36 @@ export function SearchScreen() {
           ) : null}
         </Pressable>
       </View>
+
+      {cvhReference ? (
+        <Pressable
+          testID="search-cvh-open"
+          accessibilityRole="button"
+          onPress={() => void runSearch(query, filters)}
+          style={[
+            styles.cvhCard,
+            {
+              backgroundColor: theme.colors.surfaceAlt,
+              borderColor: theme.colors.cardBorder,
+              borderRadius: theme.shapes.radius.md,
+            },
+          ]}
+        >
+          <Ionicons name="play-circle-outline" size={20} color={theme.colors.accent} />
+          <View style={styles.cvhText}>
+            <AppText variant="sm" weight="700">
+              {t('search.cvhOpen', { id: cvhReference.id })}
+            </AppText>
+            <AppText variant="xs" tone="muted">
+              {t('search.cvhHint')}
+            </AppText>
+          </View>
+        </Pressable>
+      ) : (
+        <AppText variant="xs" tone="muted" style={styles.cvhNote}>
+          {t('search.cvhHowTo')}
+        </AppText>
+      )}
 
       {fromCache ? (
         <View style={styles.notice}>
@@ -214,6 +251,16 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 15, paddingVertical: 0 },
   filterButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: 6, right: 6, minWidth: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  cvhCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1,
+    padding: 12,
+    marginTop: 12,
+  },
+  cvhText: { flex: 1, gap: 2 },
+  cvhNote: { marginTop: 10 },
   notice: { paddingHorizontal: 16, marginTop: 10 },
   meta: { paddingHorizontal: 16, marginTop: 16, gap: 6 },
   providerChips: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
