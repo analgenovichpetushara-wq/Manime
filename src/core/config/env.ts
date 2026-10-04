@@ -11,6 +11,10 @@ import Constants from 'expo-constants';
  */
 export interface AppEnv {
   watchTogetherUrl: string;
+  /** Base URL of the AniLiberty REST API (`/api/v1`). Public, no credentials. */
+  anilibriaBaseUrl: string;
+  /** Fallback mirror used when the primary host does not answer. */
+  anilibriaMirrorBaseUrl: string;
   /** Base URL of the Kodik REST API (or of the AnimAlc gateway exposing it). */
   kodikBaseUrl: string;
   /**
@@ -28,6 +32,7 @@ export interface AppEnv {
 
 type ExtraShape = {
   watchTogetherUrl?: string;
+  anilibriaBaseUrl?: string;
   kodikBaseUrl?: string;
   kodikGatewayUrl?: string;
   anime365BaseUrl?: string;
@@ -47,6 +52,9 @@ export const KODIK_DEFAULT_BASE_URL = 'https://kodik-api.com';
 
 export const env: AppEnv = {
   watchTogetherUrl: process.env.EXPO_PUBLIC_WATCH_TOGETHER_URL ?? extra.watchTogetherUrl ?? '',
+  anilibriaBaseUrl:
+    process.env.EXPO_PUBLIC_ANILIBRIA_BASE_URL ?? extra.anilibriaBaseUrl ?? 'https://api.anilibria.app/api/v1',
+  anilibriaMirrorBaseUrl: 'https://aniliberty.top/api/v1',
   kodikBaseUrl:
     process.env.EXPO_PUBLIC_KODIK_GATEWAY_URL ??
     extra.kodikGatewayUrl ??

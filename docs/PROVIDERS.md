@@ -14,7 +14,9 @@ UI → providerService → ProviderManager → provider implementations → HTTP
 
 | Provider | Registered | Public API | search | metadata | episodes | voiceovers | qualities | streams |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Kodik** | yes (primary) | no — partner token | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ media URL — official embed player instead |
+| **AniLibria** (AniLiberty) | yes | yes | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ HLS 480/720/1080 |
+| **CVH** (CdnVideoHub) | no — link/id only | yes | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ HLS + MP4 ≤ 1080p |
+| Kodik | yes | no — partner token | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ media URL — official embed player instead |
 | Anime 365 (smotret-anime) | yes | yes | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ (login-gated) |
 | Shikimori | yes | yes | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 
@@ -22,6 +24,33 @@ Retired and **removed from the codebase** during the Kodik migration: Anilibria
 (API client, mapper, provider, tests, endpoints, env vars, strings) and
 AniDUB/AniBoom. Only `src/services/providerMigration.ts` still mentions those
 ids, to re-attach the user's local history (see *Data migration*).
+
+## CVH (CdnVideoHub)
+
+Open player API, no credentials — verified live on 2026-10-04:
+
+* `GET https://plapi.cdnvideohub.com/api/v1/player/sv/playlist?pub=747&aggr=mali&id=<id>`
+  → `{titleName, isSerial, items:[{cvhId, vkId, voiceStudio, voiceType, season, episode}]}`
+* `GET …/video/<vkId>` → `{duration, thumbUrl, sources:{hlsUrl, dashUrl,
+  mpegHighUrl (720), mpegFullHdUrl (1080), mpegMediumUrl (480), mpegLowUrl (360),
+  mpegLowestUrl (240), mpegTinyUrl (144)}}` — Odnoklassniki key naming, mapped by
+  `CVH_QUALITY_HEIGHTS`.
+
+**There is no title search.** A media item is addressed by the publisher's id,
+which lives on the site embedding the player; discovering ids by name would mean
+scraping that site, which AnimAlc does not do. Instead `parseCvhReference()`
+accepts what a user can paste — a `/cdn-iframe/<id>/<season>/<episode>?dubbing=…`
+url, a bare numeric id, or `cvh:<id>` — and `searchTitles()` resolves it
+directly, so pasting a CVH link in the search field plays it.
+
+CDN links are signed, IP-bound and short-lived, so they are fetched right
+before playback and the resulting bundle carries an `expiresAt` (~3 min).
+
+## AniLibria (AniLiberty)
+
+Public API, no credentials: catalogue, search, episodes with Russian voiceover,
+HLS 480/720/1080 and opening/ending timecodes. It is the source that makes the
+native player work without any token.
 
 ## Kodik
 

@@ -217,13 +217,32 @@ describe('Kodik provider', () => {
 });
 
 describe('provider stack after the migration', () => {
-  it('ships Kodik, Anime365 and Shikimori only', () => {
-    expect(PROVIDER_DESCRIPTORS.map((descriptor) => descriptor.id)).toEqual(['kodik', 'anime365', 'shikimori']);
-    expect(createProviderManager().list().map((provider) => provider.descriptor.id)).toEqual([
+  it('ships AniLibria, CVH, Kodik, Anime365 and Shikimori', () => {
+    expect(PROVIDER_DESCRIPTORS.map((descriptor) => descriptor.id)).toEqual([
+      'anilibria',
+      'cvh',
       'kodik',
       'anime365',
       'shikimori',
     ]);
+    expect(createProviderManager().list().map((provider) => provider.descriptor.id)).toEqual([
+      'anilibria',
+      'cvh',
+      'kodik',
+      'anime365',
+      'shikimori',
+    ]);
+  });
+
+  it('streams only from credential-free sources and never from Kodik', () => {
+    // AniLibria publishes HLS and CVH answers openly; Kodik publishes no media
+    // URL at all and stays on its official embed player.
+    const streaming = PROVIDER_DESCRIPTORS.filter((descriptor) => descriptor.capabilities.streams);
+    expect(streaming.map((descriptor) => descriptor.id)).toEqual(['anilibria', 'cvh']);
+    expect(streaming.every((descriptor) => descriptor.capabilities.publicApi)).toBe(true);
+    expect(PROVIDER_DESCRIPTORS.find((descriptor) => descriptor.id === 'kodik')?.capabilities.streams).toBe(false);
+    // CVH has no catalogue, so it must not claim to search.
+    expect(PROVIDER_DESCRIPTORS.find((descriptor) => descriptor.id === 'cvh')?.capabilities.search).toBe(false);
   });
 
   it('keeps returning merged results when Kodik is unauthenticated', async () => {

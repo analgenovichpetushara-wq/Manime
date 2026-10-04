@@ -31,15 +31,17 @@ describe('retired provider migration', () => {
   });
 
   it('knows which providers were removed', () => {
-    expect(RETIRED_PROVIDER_IDS).toEqual(['anilibria', 'anidub']);
-    expect(isRetiredProviderId('anilibria')).toBe(true);
+    expect(RETIRED_PROVIDER_IDS).toEqual(['anidub']);
+    expect(isRetiredProviderId('anidub')).toBe(true);
+    // AniLibria is an active source again, so its history is left untouched.
+    expect(isRetiredProviderId('anilibria')).toBe(false);
     expect(isRetiredProviderId('kodik')).toBe(false);
   });
 
   it('rebinds entries it can re-match and preserves the rest', () => {
     const entries: Record<string, WatchProgress> = {
-      'anilibria:1': entry({ titleId: 'anilibria:1', titleName: 'Наруто', providerId: 'anilibria' }),
-      'anidub:2': entry({ titleId: 'anidub:2', titleName: 'Блич', providerId: 'anidub', episodeOrdinal: 7 }),
+      'anidub:1': entry({ titleId: 'anidub:1', titleName: 'Наруто', providerId: 'anidub' }),
+      'anilibria:2': entry({ titleId: 'anilibria:2', titleName: 'Блич', providerId: 'anilibria', episodeOrdinal: 7 }),
       'kodik:serial-3': entry({ titleId: 'kodik:serial-3', titleName: 'Ван-Пис' }),
     };
 
@@ -47,18 +49,20 @@ describe('retired provider migration', () => {
       titleName === 'Наруто' ? { titleId: 'kodik:serial-42758', providerId: 'kodik', refId: 'serial-42758' } : undefined,
     );
 
-    expect(report).toMatchObject({ scanned: 3, rebound: 1, preserved: 1, retired: ['anilibria', 'anidub'] });
+    expect(report).toMatchObject({ scanned: 3, rebound: 1, preserved: 0, retired: ['anidub'] });
     // Nothing is deleted: three entries in, three entries out.
     expect(Object.keys(migrated)).toHaveLength(3);
     expect(migrated['kodik:serial-42758']).toMatchObject({
       providerId: 'kodik',
       titleName: 'Наруто',
       episodeOrdinal: 1,
-      legacyProviderId: 'anilibria',
+      legacyProviderId: 'anidub',
       // Episode ids are provider specific, so the stale one is dropped.
       episodeId: '',
     });
-    expect(migrated['anidub:2']).toMatchObject({ titleName: 'Блич', legacyProviderId: 'anidub', episodeOrdinal: 7 });
+    // An AniLibria entry belongs to a live provider: it is not rewritten.
+    expect(migrated['anilibria:2']).toMatchObject({ titleName: 'Блич', providerId: 'anilibria', episodeOrdinal: 7 });
+    expect(migrated['anilibria:2']?.legacyProviderId).toBeUndefined();
     expect(migrated['kodik:serial-3']).toMatchObject({ providerId: 'kodik' });
     expect(migrated['kodik:serial-3']?.legacyProviderId).toBeUndefined();
   });
@@ -67,7 +71,7 @@ describe('retired provider migration', () => {
     await writeJson(storageKey(StorageKeys.progress), {
       version: 1,
       savedAt: Date.now(),
-      state: { entries: { 'anilibria:1': entry({ titleId: 'anilibria:1', providerId: 'anilibria', titleName: 'Наруто' }) } },
+      state: { entries: { 'anidub:1': entry({ titleId: 'anidub:1', providerId: 'anidub', titleName: 'Наруто' }) } },
     });
 
     const report = await migrateRetiredProviders({

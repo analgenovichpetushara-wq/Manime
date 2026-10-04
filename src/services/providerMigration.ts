@@ -10,7 +10,7 @@ const log = createLogger('provider-migration');
  * Providers removed during the Kodik migration. Their integrations are gone, so
  * stored references can no longer be resolved — but the user's history stays.
  */
-export const RETIRED_PROVIDER_IDS: readonly string[] = ['anilibria', 'anidub'];
+export const RETIRED_PROVIDER_IDS: readonly string[] = ['anidub'];
 
 /** Where a retired entry can be re-attached in the new provider stack. */
 export interface MigrationMatch {

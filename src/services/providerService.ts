@@ -1,4 +1,5 @@
 import { createProviderManager, PROVIDER_DESCRIPTORS } from '@/providers/registry';
+import { CVH_ID, parseCvhReference } from '@/providers/implementations/cvh/api';
 import type { ProviderManager, ManagerEvent } from '@/providers/manager';
 import type {
   AnimeTitle,
@@ -79,6 +80,25 @@ export async function searchTitles(filters: SearchFilters, page = 1): Promise<Se
   const instance = getProviderManager();
   const state = useSettingsStore.getState();
   const key = cacheKey(filters, page);
+
+  /**
+   * CVH is a player without a catalogue, so a pasted iframe url, numeric id or
+   * `cvh:<id>` is resolved straight through its open API instead of being sent
+   * to a text search that cannot answer it.
+   */
+  const cvhReference = page === 1 ? parseCvhReference(filters.query) : undefined;
+  if (cvhReference) {
+    try {
+      const title = await instance.getTitle(CVH_ID, cvhReference.id);
+      await titleCache.remember([title]);
+      return { titles: [title], failures: [], fromCache: false, usedProviders: [CVH_ID] };
+    } catch (error) {
+      const appError = toAppError(error, 'PROVIDER_UNAVAILABLE');
+      log.warn('cvh reference could not be resolved', { code: appError.code });
+      return { titles: [], failures: [{ providerId: CVH_ID, errorCode: appError.code }], fromCache: false, usedProviders: [] };
+    }
+  }
+
   try {
     const result = await instance.search(filters, page, { preferredIds: state.providerPreferences });
     const filtered = state.matureTitlesVisible ? result.items : result.items.filter((item) => !item.isMature);
