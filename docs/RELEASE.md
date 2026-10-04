@@ -13,15 +13,26 @@ guarded block to `android/app/build.gradle`:
   `keyPassword`) or the equivalent environment variables;
 * when all four are present it creates `signingConfigs.animalcRelease` and
   assigns it to `buildTypes.release`, overriding the template's debug key;
-* when they are absent it logs
-  `[AnimAlc] no release keystore configured — release builds stay unsigned`
-  and leaves the build unsigned — it never silently falls back to the debug key.
+* when they are absent it **blocks** `assembleRelease` / `bundleRelease` with a
+  message explaining how to configure a keystore. It never falls back to the
+  debug key, and it never produces an unsigned artifact: Android refuses to
+  install unsigned APKs and reports it as a damaged package.
 
 Because `expo prebuild --clean` regenerates `android/`, the config is injected on
 every prebuild instead of being committed. Re-running prebuild is idempotent
 (the block is marked `ANIMALC_SIGNING_BEGIN/END`).
 
-### Creating the keystore (once)
+### Fastest path to an installable APK
+
+```
+./scripts/build-android.sh
+```
+
+It creates a keystore if there is none, exports the four variables, runs
+`expo prebuild --clean` + `assembleRelease`, verifies the signature with
+`apksigner` when the Android SDK is available and prints the APK path.
+
+### Creating the keystore by hand (once)
 
 ```
 ./scripts/make-keystore.sh          # prompts for passwords, writes animalc-release.keystore
@@ -71,6 +82,29 @@ Repository secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
 `production` (AAB) profiles, so EAS generates and stores the upload key. To keep
 the keystore yourself instead, switch to `"local"` and add a `credentials.json`
 (already git-ignored).
+
+## Troubleshooting
+
+**"Пакет повреждён" / "There was a problem parsing the package" when
+installing.** The APK is unsigned. That happens when the release build ran
+without a keystore, or when an `app-release-unsigned.apk` / an `.aab` was
+installed directly. Check with:
+
+```
+apksigner verify --print-certs app.apk      # or: keytool -printcert -jarfile app.apk
+```
+
+No certificate output means unsigned — build with `./scripts/build-android.sh`
+(or `assembleDebug` for a quick install). Since the signing guard is injected at
+prebuild time, an unsigned release build now fails during Gradle configuration
+instead of producing such an APK.
+
+**"Приложение не установлено" after a reinstall.** A different signing key than
+the installed build. Uninstall the old app first, or sign with the same
+keystore.
+
+**Play Console rejects the upload.** It needs a signed **AAB**
+(`assembleBundle` / `eas build -p android --profile production`), not an APK.
 
 ## iOS
 

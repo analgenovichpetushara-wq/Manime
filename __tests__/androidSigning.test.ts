@@ -64,6 +64,11 @@ describe('Android release signing plugin', () => {
     expect(output.startsWith('apply plugin: "com.android.application"')).toBe(true);
     // No literal secret may end up in the gradle file.
     expect(output).not.toMatch(/storePassword\s+'[^']+'/);
+    // Without a keystore the release build must fail instead of producing an
+    // unsigned APK that Android rejects as a damaged package.
+    expect(output).toContain("gradle.taskGraph.whenReady");
+    expect(output).toContain("task.path.endsWith('assembleRelease')");
+    expect(output).toContain('throw new GradleException');
   });
 
   it('is idempotent across repeated prebuilds', () => {
@@ -86,6 +91,7 @@ describe('Android release signing plugin', () => {
     }
     const contents = fs.readFileSync(buildGradle, 'utf8');
     expect(contents).toContain('signingConfig signingConfigs.animalcRelease');
+    expect(contents).toContain('gradle.taskGraph.whenReady');
     expect(contents.split('ANIMALC_SIGNING_BEGIN')).toHaveLength(2);
   });
 
