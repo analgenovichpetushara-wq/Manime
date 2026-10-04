@@ -36,7 +36,8 @@ Open player API, no credentials — verified live on 2026-10-04:
   mpegLowestUrl (240), mpegTinyUrl (144)}}` — Odnoklassniki key naming, mapped by
   `CVH_QUALITY_HEIGHTS`.
 
-**There is no title search.** A media item is addressed by the publisher's id,
+**There is no title search** — probed live: `GET …/player/sv/search?query=naruto`
+answers `404 page not found`. A media item is addressed by the publisher's id,
 which lives on the site embedding the player; discovering ids by name would mean
 scraping that site, which AnimAlc does not do. Instead `parseCvhReference()`
 accepts what a user can paste — a `/cdn-iframe/<id>/<season>/<episode>?dubbing=…`
@@ -51,6 +52,16 @@ before playback and the resulting bundle carries an `expiresAt` (~3 min).
 Public API, no credentials: catalogue, search, episodes with Russian voiceover,
 HLS 480/720/1080 and opening/ending timecodes. It is the source that makes the
 native player work without any token.
+
+**Filters are applied client-side.** A live call to
+`/anime/catalog/releases` on 2026-10-04 returned the same first release and the
+same `pagination.total` (1934) with and without `genres`, `years`,
+`is_ongoing`, `ordering`, `type` and `types` — the endpoint only honours `limit`
+and `page`. `src/providers/searchFilters.ts` therefore narrows every page in the
+app, so the format (ТВ / Фильм / OVA / ONA / Спешл), year, status, genre and
+minimum-episode filters really do filter. AniLiberty publishes no separate
+"Blu-Ray" flag: the closest real signals are the release format and the
+available HLS renditions (1080p), and that is what the UI offers.
 
 ## Kodik
 

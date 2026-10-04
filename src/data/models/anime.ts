@@ -131,6 +131,8 @@ export interface SearchFilters {
   query: string;
   genres: string[];
   years: number[];
+  /** Release format: TV serial, film, OVA… (`AnimeType`). */
+  types: AnimeType[];
   statuses: AnimeStatus[];
   providerIds: string[];
   voiceoverKinds: VoiceoverKind[];
@@ -141,6 +143,7 @@ export const EMPTY_FILTERS: SearchFilters = {
   query: '',
   genres: [],
   years: [],
+  types: [],
   statuses: [],
   providerIds: [],
   voiceoverKinds: [],

@@ -6,10 +6,11 @@ import { Button } from '@/ui/Button';
 import { AppText } from '@/ui/AppText';
 import { useText } from '@/i18n/useText';
 import { availableProviders } from '@/services/providerService';
-import type { AnimeStatus, SearchFilters, VoiceoverKind } from '@/data/models/anime';
+import type { AnimeType, AnimeStatus, SearchFilters, VoiceoverKind } from '@/data/models/anime';
 
 const YEARS = [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2018, 2015, 2010];
 const STATUSES: AnimeStatus[] = ['ongoing', 'released', 'announced'];
+const TYPES: AnimeType[] = ['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL'];
 const VOICEOVER_KINDS: VoiceoverKind[] = ['voice', 'dub', 'subtitles', 'raw'];
 const MIN_EPISODES = [0, 6, 12, 24, 50, 100];
 
@@ -33,7 +34,7 @@ function FiltersSheetBody({ visible, filters, genres, onClose, onApply }: Search
   const { t } = useText();
   const [draft, setDraft] = useState<SearchFilters>(filters);
 
-  const toggle = <K extends 'genres' | 'years' | 'statuses' | 'providerIds' | 'voiceoverKinds'>(
+  const toggle = <K extends 'genres' | 'years' | 'types' | 'statuses' | 'providerIds' | 'voiceoverKinds'>(
     key: K,
     value: SearchFilters[K][number],
   ) => {
@@ -65,6 +66,24 @@ function FiltersSheetBody({ visible, filters, genres, onClose, onApply }: Search
         <View style={styles.wrapChips}>
           {YEARS.map((year) => (
             <Chip key={year} label={String(year)} selected={draft.years.includes(year)} onPress={() => toggle('years', year)} />
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.group}>
+        <AppText variant="sm" weight="700">
+          {t('search.filter.type')}
+        </AppText>
+        <AppText variant="xs">{t('search.filter.typeHint')}</AppText>
+        <View style={styles.wrapChips}>
+          {TYPES.map((type) => (
+            <Chip
+              key={type}
+              label={t(`type.${type}`)}
+              selected={draft.types.includes(type)}
+              onPress={() => toggle('types', type)}
+              testID={`filter-type-${type.toLowerCase()}`}
+            />
           ))}
         </View>
       </View>
@@ -134,7 +153,7 @@ function FiltersSheetBody({ visible, filters, genres, onClose, onApply }: Search
       </View>
 
       <View style={styles.actions}>
-        <Button label={t('search.resetFilters')} variant="secondary" onPress={() => setDraft({ ...filters, genres: [], years: [], statuses: [], providerIds: [], voiceoverKinds: [], minEpisodes: undefined })} />
+        <Button label={t('search.resetFilters')} variant="secondary" onPress={() => setDraft({ ...filters, genres: [], years: [], types: [], statuses: [], providerIds: [], voiceoverKinds: [], minEpisodes: undefined })} />
         <Button label={t('search.apply')} onPress={() => onApply(draft)} />
       </View>
     </ModalSheet>

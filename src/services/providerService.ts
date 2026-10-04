@@ -64,6 +64,7 @@ function cacheKey(filters: SearchFilters, page: number): string {
     q: filters.query.trim().toLowerCase(),
     g: [...filters.genres].sort(),
     y: [...filters.years].sort(),
+    t: [...filters.types].sort(),
     s: [...filters.statuses].sort(),
     p: [...filters.providerIds].sort(),
     v: [...filters.voiceoverKinds].sort(),

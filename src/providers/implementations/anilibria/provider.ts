@@ -19,6 +19,7 @@ import {
 } from '@/providers/implementations/anilibria/mapper';
 import type { AnilibriaRelease } from '@/providers/implementations/anilibria/types';
 import type { AnimeProvider, ProviderDescriptor, ProviderHealth, StreamRequestOptions } from '@/providers/types';
+import { applyFilters } from '@/providers/searchFilters';
 
 const DESCRIPTOR: ProviderDescriptor = {
   id: ANILIBRIA_ID,
@@ -69,9 +70,14 @@ export class AnilibriaProvider implements AnimeProvider {
     return release;
   }
 
-  async search(query: string, _filters: SearchFilters, page: number): Promise<Paged<AnimeTitle>> {
+  async search(query: string, filters: SearchFilters, page: number): Promise<Paged<AnimeTitle>> {
     const results = await this.api.search(query, 30);
-    const items = results.filter((release) => (release.episodes_total ?? 0) > 0 || release.is_ongoing !== false).map((release) => this.cacheRelease(release));
+    const items = applyFilters(
+      results
+        .filter((release) => (release.episodes_total ?? 0) > 0 || release.is_ongoing !== false)
+        .map((release) => this.cacheRelease(release)),
+      filters,
+    );
     const pageSize = 20;
     const start = (page - 1) * pageSize;
     return {
@@ -96,7 +102,9 @@ export class AnilibriaProvider implements AnimeProvider {
     const data = response.data ?? [];
     const pagination = response.meta?.pagination;
     return {
-      items: data.map((release) => this.cacheRelease(release)),
+      // The catalogue endpoint answers identically with or without genres /
+      // years / ordering (verified live), so the filters are applied here.
+      items: applyFilters(data.map((release) => this.cacheRelease(release)), filters),
       page: pagination?.current_page ?? page,
       totalItems: pagination?.total ?? undefined,
       totalPages: pagination?.total_pages ?? undefined,

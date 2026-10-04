@@ -67,7 +67,7 @@ describe('Kodik (credential-gated)', () => {
   it('reports the missing token instead of faking data', async () => {
     const provider = new KodikProvider(new KodikApi({ baseUrl: 'https://kodik-api.com', token: '' }));
     expect(provider.isConfigured).toBe(false);
-    await expect(provider.search('naruto', { query: 'naruto', genres: [], years: [], statuses: [], providerIds: [], voiceoverKinds: [] }, 1)).rejects.toMatchObject({
+    await expect(provider.search('naruto', { query: 'naruto', genres: [], years: [], types: [], statuses: [], providerIds: [], voiceoverKinds: [] }, 1)).rejects.toMatchObject({
       code: 'AUTHENTICATION_REQUIRED',
     });
     await expect(provider.getStream()).rejects.toMatchObject({ code: 'STREAM_UNAVAILABLE' });

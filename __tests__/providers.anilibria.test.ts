@@ -1,7 +1,10 @@
 import { mapEpisode, mapQualities, mapRelease, mapStreams, mapVoiceover, proxyImage } from '@/providers/implementations/anilibria/mapper';
-import { apiOrigin, absoluteMediaUrl } from '@/providers/implementations/anilibria/api';
+import { AnilibriaApi, apiOrigin, absoluteMediaUrl } from '@/providers/implementations/anilibria/api';
 import { anilibriaEpisode, anilibriaEpisodeWithoutStreams, anilibriaRelease } from './fixtures/releases';
 import { AppError } from '@/core/errors/AppError';
+import { AnilibriaProvider } from '@/providers/implementations/anilibria/provider';
+import { applyFilters, matchesFilters } from '@/providers/searchFilters';
+import { EMPTY_FILTERS } from '@/data/models/anime';
 
 describe('Anilibria provider mapping', () => {
   it('maps a release into the normalized title model', () => {
@@ -79,5 +82,64 @@ describe('Anilibria provider mapping', () => {
     const missing = new AppError({ code: 'NOT_FOUND', providerId: 'anilibria', message: 'gone' });
     expect(missing.retryable).toBe(false);
     expect(missing.messageKey).toBe('errors.not_found');
+  });
+});
+
+describe('search filters (applied client-side)', () => {
+  const movieRelease = {
+    ...anilibriaRelease,
+    id: 16606,
+    type: { value: 'MOVIE', description: 'Фильм' },
+    name: { main: 'Фильм-релиз', english: 'Movie Release', alternative: null },
+    episodes_total: 1,
+  };
+
+  function installSearchStub(payload: unknown): string[] {
+    const requested: string[] = [];
+    global.fetch = (async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      requested.push(url);
+      return {
+        ok: true,
+        status: 200,
+        url,
+        text: async () => JSON.stringify(payload),
+        json: async () => payload,
+        headers: new Map(),
+      } as unknown as Response;
+    }) as unknown as typeof fetch;
+    return requested;
+  }
+
+  it('narrows results by format, year, status and episode count', async () => {
+    installSearchStub([anilibriaRelease, movieRelease]);
+    const provider = new AnilibriaProvider(new AnilibriaApi());
+
+    const unfiltered = await provider.search('релиз', EMPTY_FILTERS, 1);
+    expect(unfiltered.items.map((title) => title.type)).toEqual(['TV', 'MOVIE']);
+
+    const movies = await provider.search('релиз', { ...EMPTY_FILTERS, types: ['MOVIE'] }, 1);
+    expect(movies.items.map((title) => title.id)).toEqual(['anilibria:16606']);
+
+    const tooLong = await provider.search('релиз', { ...EMPTY_FILTERS, minEpisodes: 6 }, 1);
+    expect(tooLong.items.map((title) => title.id)).toEqual(['anilibria:16605']);
+  });
+
+  it('matches a title against every filter axis', () => {
+    const title = mapRelease(anilibriaRelease as never);
+    expect(matchesFilters(title, EMPTY_FILTERS)).toBe(true);
+    expect(matchesFilters(title, { ...EMPTY_FILTERS, types: ['MOVIE'] })).toBe(false);
+    expect(matchesFilters(title, { ...EMPTY_FILTERS, types: ['TV'] })).toBe(true);
+    expect(matchesFilters(title, { ...EMPTY_FILTERS, years: [2024] })).toBe(true);
+    expect(matchesFilters(title, { ...EMPTY_FILTERS, years: [1999] })).toBe(false);
+    expect(matchesFilters(title, { ...EMPTY_FILTERS, statuses: ['ongoing'] })).toBe(false);
+    expect(matchesFilters(title, { ...EMPTY_FILTERS, genres: ['фэнтези'] })).toBe(true);
+    expect(matchesFilters(title, { ...EMPTY_FILTERS, genres: ['Меха'] })).toBe(false);
+  });
+
+  it('leaves a page untouched when no filter is set', () => {
+    const items = [mapRelease(anilibriaRelease as never)];
+    expect(applyFilters(items, EMPTY_FILTERS)).toBe(items);
+    expect(applyFilters(items, { ...EMPTY_FILTERS, types: ['OVA'] })).toEqual([]);
   });
 });
