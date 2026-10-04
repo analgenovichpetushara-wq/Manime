@@ -37,7 +37,12 @@ Open player API, no credentials — verified live on 2026-10-04:
   `CVH_QUALITY_HEIGHTS`.
 
 **There is no title search** — probed live: `GET …/player/sv/search?query=naruto`
-answers `404 page not found`. A media item is addressed by the publisher's id,
+answers `404 page not found`. Discovery instead comes from a source that
+publishes CVH links: AniLibria's `external_player` (see below). When that field
+holds a `/cdn-iframe/<id>/…` url, the mapper reuses the id as a CVH
+`providerRef`, so a title found by AniLibria search is played natively through
+CVH's open API — episodes, dubs, qualities and HLS, no scraping involved.
+A pasted link or `cvh:<id>` still works on its own. A media item is addressed by the publisher's id,
 which lives on the site embedding the player; discovering ids by name would mean
 scraping that site, which AnimAlc does not do. Instead `parseCvhReference()`
 accepts what a user can paste — a `/cdn-iframe/<id>/<season>/<episode>?dubbing=…`
@@ -52,6 +57,13 @@ before playback and the resulting bundle carries an `expiresAt` (~3 min).
 Public API, no credentials: catalogue, search, episodes with Russian voiceover,
 HLS 480/720/1080 and opening/ending timecodes. It is the source that makes the
 native player work without any token.
+
+**`external_player` makes unhosted releases playable.** AniLibria publishes an
+official embed link for the releases it does not host itself — captured live on
+2026-10-04: `"external_player": "//aniqit.com/serial/47963/bc6d1015…/720p?translations=false"`.
+AnimAlc plays that link inside the provider's own player (the same web view as
+Kodik) and never derives a media URL from it. When the link points at
+CdnVideoHub, the title gets a CVH provider ref instead and plays natively.
 
 **Filters are applied client-side.** A live call to
 `/anime/catalog/releases` on 2026-10-04 returned the same first release and the

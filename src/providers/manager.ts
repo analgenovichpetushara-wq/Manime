@@ -385,9 +385,20 @@ export class ProviderManager {
     });
   }
 
-  /** True when any provider serving this title can hand out an official player link. */
+  /**
+   * True when this title can be played inside a provider's own player.
+   *
+   * Two honest cases: a source that publishes no media URL at all (Kodik) always
+   * plays through its embed player, and a source that normally streams (AniLibria)
+   * offers one only for the releases where it published an `external_player`
+   * link — so the check follows the title, not the provider, and the button is
+   * never shown for a title that has nothing to open.
+   */
   supportsEmbedLink(title: AnimeTitle, preferredProviderId?: string): boolean {
-    return this.orderedRefsFor(title, preferredProviderId).some((provider) => typeof provider.getEmbedLink === 'function');
+    if (title.externalPlayerUrl) return true;
+    return this.orderedRefsFor(title, preferredProviderId).some(
+      (provider) => typeof provider.getEmbedLink === 'function' && provider.descriptor.capabilities.streams === false,
+    );
   }
 
   /** Official embed player link for a title, from the first provider that has one. */

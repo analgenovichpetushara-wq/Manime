@@ -53,6 +53,12 @@ export interface AnimeTitle {
   hasRussianVoice: boolean;
   updatedAt?: number;
   providerRefs: ProviderRef[];
+  /**
+   * Official embed-player link the source publishes for releases it does not
+   * host itself (AniLibria's `external_player`). It is a player page, never a
+   * media URL, so it is only ever handed to the in-app web view.
+   */
+  externalPlayerUrl?: string;
   capabilities: ProviderCapabilities;
 }
 

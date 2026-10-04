@@ -10,6 +10,7 @@ import type {
 import { AppError } from '@/core/errors/AppError';
 import { AnilibriaApi } from '@/providers/implementations/anilibria/api';
 import {
+  externalPlayerOf,
   mapEpisode,
   mapQualities,
   mapRelease,
@@ -117,6 +118,16 @@ export class AnilibriaProvider implements AnimeProvider {
   private genreIdByName(name: string): number | undefined {
     if (!this.genreMap) return undefined;
     return this.genreMap[name.toLowerCase()];
+  }
+
+  /**
+   * Releases AniLibria does not host carry an official embed link in
+   * `external_player`; the app plays it inside the provider's own player. A
+   * media URL is never derived from it.
+   */
+  async getEmbedLink(title: AnimeTitle): Promise<string | undefined> {
+    const release = await this.loadRelease(title);
+    return externalPlayerOf(release).url;
   }
 
   async getTitle(refId: string): Promise<AnimeTitle> {

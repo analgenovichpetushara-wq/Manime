@@ -1,6 +1,7 @@
 import type { AnimeTitle, Episode, QualityVariant, StreamSource, Voiceover } from '@/data/models/anime';
 import { titleKey, NO_CAPABILITIES } from '@/data/models/anime';
 import { anilibriaApi, absoluteMediaUrl } from '@/providers/implementations/anilibria/api';
+import { CVH_ID, parseCvhReference } from '@/providers/implementations/cvh/api';
 import type { AnilibriaEpisode, AnilibriaMember, AnilibriaRelease } from '@/providers/implementations/anilibria/types';
 
 export const ANILIBRIA_ID = 'anilibria';
@@ -20,8 +21,22 @@ const CAPABILITIES = {
 
 const MATURE_GENRES = ['этти', 'эротика', 'гарем', 'взрослый'];
 
+/**
+ * AniLibria publishes `external_player` for the releases it does not host: an
+ * official embed link (captured live: `//aniqit.com/serial/47963/<hash>/720p`).
+ * When that link points at CdnVideoHub, the media id is reused as a CVH
+ * provider ref so the title can be played natively through CVH's open API.
+ */
+export function externalPlayerOf(release: AnilibriaRelease): { url?: string; cvhId?: string } {
+  const raw = release.external_player?.trim();
+  if (!raw) return {};
+  const cvh = parseCvhReference(raw);
+  return { url: absoluteMediaUrl(raw), cvhId: cvh?.id };
+}
+
 export function mapRelease(release: AnilibriaRelease): AnimeTitle {
   const poster = release.poster?.optimized?.src ?? release.poster?.src ?? release.poster?.preview ?? undefined;
+  const external = externalPlayerOf(release);
   const background = release.background_covers?.[0]?.optimized?.src ?? release.background_covers?.[0]?.src ?? undefined;
   const genres = (release.genres ?? []).map((genre) => genre.name).filter(Boolean);
   const tkey = titleKey(ANILIBRIA_ID, String(release.id));
@@ -53,7 +68,13 @@ export function mapRelease(release: AnilibriaRelease): AnimeTitle {
       genres.some((genre) => MATURE_GENRES.includes(genre.toLowerCase())),
     hasRussianVoice: true,
     updatedAt: release.updated_at ? Date.parse(release.updated_at) : undefined,
-    providerRefs: [{ providerId: ANILIBRIA_ID, refId: String(release.id) }],
+    providerRefs: external.cvhId
+      ? [
+          { providerId: ANILIBRIA_ID, refId: String(release.id) },
+          { providerId: CVH_ID, refId: external.cvhId },
+        ]
+      : [{ providerId: ANILIBRIA_ID, refId: String(release.id) }],
+    externalPlayerUrl: external.url,
     capabilities: CAPABILITIES,
   };
 }

@@ -4,6 +4,8 @@ import { anilibriaEpisode, anilibriaEpisodeWithoutStreams, anilibriaRelease } fr
 import { AppError } from '@/core/errors/AppError';
 import { AnilibriaProvider } from '@/providers/implementations/anilibria/provider';
 import { applyFilters, matchesFilters } from '@/providers/searchFilters';
+import { createProviderManager } from '@/providers/registry';
+import { cvhPlaylist, cvhVideo } from './fixtures/cvh';
 import { EMPTY_FILTERS } from '@/data/models/anime';
 
 describe('Anilibria provider mapping', () => {
@@ -141,5 +143,88 @@ describe('search filters (applied client-side)', () => {
     const items = [mapRelease(anilibriaRelease as never)];
     expect(applyFilters(items, EMPTY_FILTERS)).toBe(items);
     expect(applyFilters(items, { ...EMPTY_FILTERS, types: ['OVA'] })).toEqual([]);
+  });
+});
+
+describe('external player links published by AniLibria', () => {
+  function stubJson(payload: unknown): void {
+    global.fetch = (async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      return {
+        ok: true,
+        status: 200,
+        url,
+        text: async () => JSON.stringify(payload),
+        json: async () => payload,
+        headers: new Map(),
+      } as unknown as Response;
+    }) as unknown as typeof fetch;
+  }
+
+  const cvhExternal = {
+    ...anilibriaRelease,
+    id: 16607,
+    external_player: '//animego.org/anime/1234/cdn-iframe/51019/1/2?dubbing=AniLibria',
+  };
+
+  it('absolutizes an embed link without turning it into a stream', () => {
+    const title = mapRelease({
+      ...anilibriaRelease,
+      external_player: '//aniqit.com/serial/47963/bc6d1015fa55949863a13500100c56d8/720p?translations=false',
+    } as never);
+    expect(title.externalPlayerUrl).toBe(
+      'https://aniqit.com/serial/47963/bc6d1015fa55949863a13500100c56d8/720p?translations=false',
+    );
+    // A player page is not a media url: no CVH ref is invented from it.
+    expect(title.providerRefs).toEqual([{ providerId: 'anilibria', refId: '16605' }]);
+  });
+
+  it('reuses a CdnVideoHub link as a CVH ref so the title plays natively', () => {
+    const title = mapRelease(cvhExternal as never);
+    expect(title.providerRefs).toEqual([
+      { providerId: 'anilibria', refId: '16607' },
+      { providerId: 'cvh', refId: '51019' },
+    ]);
+    expect(title.externalPlayerUrl).toContain('https://animego.org/');
+  });
+
+  it('resolves the embed link from the release payload', async () => {
+    stubJson({ ...anilibriaRelease, external_player: '//aniqit.com/serial/47963/hash/720p' });
+    const provider = new AnilibriaProvider(new AnilibriaApi());
+    const title = mapRelease(anilibriaRelease as never);
+    await expect(provider.getEmbedLink(title)).resolves.toBe('https://aniqit.com/serial/47963/hash/720p');
+  });
+
+  it('plays a searched title through CVH when AniLibria points at it', async () => {
+    const routes: { match: (url: string) => boolean; body: unknown }[] = [
+      { match: (url) => url.includes('/app/search/releases'), body: [cvhExternal] },
+      { match: (url) => url.includes('/anime/releases/'), body: { ...cvhExternal, episodes: [] } },
+      { match: (url) => url.includes('/player/sv/playlist'), body: cvhPlaylist },
+      { match: (url) => url.includes('/player/sv/video/'), body: cvhVideo },
+    ];
+    global.fetch = (async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      const route = routes.find((candidate) => candidate.match(url));
+      if (!route) throw new TypeError(`no route for ${url}`);
+      return {
+        ok: true,
+        status: 200,
+        url,
+        text: async () => JSON.stringify(route.body),
+        json: async () => route.body,
+        headers: new Map(),
+      } as unknown as Response;
+    }) as unknown as typeof fetch;
+
+    const manager = createProviderManager();
+    const found = await manager.search({ ...EMPTY_FILTERS, query: 'релиз' }, 1);
+    const title = found.items.find((item) => item.id === 'anilibria:16607');
+    expect(title?.providerRefs.map((ref) => ref.providerId)).toContain('cvh');
+
+    const { episodes, providerId } = await manager.getEpisodes(title!);
+    expect(providerId).toBe('cvh');
+    const bundle = await manager.getStream(title!, episodes[0]!);
+    expect(bundle.providerId).toBe('cvh');
+    expect(bundle.sources.some((source) => source.kind === 'hls')).toBe(true);
   });
 });
