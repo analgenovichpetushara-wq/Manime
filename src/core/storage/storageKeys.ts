@@ -14,6 +14,7 @@ export const StorageKeys = {
   watchTogether: 'watch-together',
   customization: 'customization',
   stats: 'stats',
+  cvhMappings: 'cvh-mappings',
 } as const;
 
 export type StorageKeyName = (typeof StorageKeys)[keyof typeof StorageKeys];

@@ -6,7 +6,7 @@
 | --- | --- |
 | `npm run typecheck` | `tsc --noEmit` over `src` and `__tests__` |
 | `npm run lint` | ESLint (eslint-config-expo + react-hooks rules) |
-| `npm test` | Jest (`jest-expo` preset, 24 suites / 194 tests) |
+| `npm test` | Jest (`jest-expo` preset, 25 suites / 206 tests) |
 | `npm run export:android` | Metro production bundle for Android (validates `@/` resolution) |
 | `npm run export:ios` | Metro production bundle for iOS |
 | `npm run server:smoke` | runtime check: boots the relay and drives two real WebSocket clients |
@@ -20,6 +20,7 @@
 
 | Suite | Area |
 | --- | --- |
+| `__tests__/cvhLinkService.test.ts` | title matching (normalization, season extraction, same release by any known name, another season/film/unrelated title rejected, empty inputs) and CdnVideoHub id resolution: stored mapping wins, a non-CVH link is refused, a title's own ref is reused, an AniLibria `external_player` id is found and cached, a dead or unrelated source resolves to `null`, a Shikimori id is accepted only when the playlist behind it names the same release, Shikimori search is used when the title carries no id, the resolved id plays through `CvhProvider`, and no rendition is labelled Blu-ray |
 | `__tests__/providers.cvh.test.ts` | CdnVideoHub: parsing a pasted iframe url / id / `cvh:` reference, mapping the captured playlist (one episode per dub, one voiceover per studio) and the Odnoklassniki `sources` keys onto real qualities, streaming through the registry, honest `NOT_FOUND` for the missing catalogue, empty-sources → `STREAM_UNAVAILABLE`, health probe |
 | `__tests__/providers.anilibria.test.ts` | AniLiberty mapping (release → title, episodes, HLS 480/720/1080, skip timings, mature flag), absolute media urls, client-side filter application (format/year/status/genre/minimum episodes), and `external_player` handling: embed link absolutized, a CdnVideoHub link becomes a CVH provider ref, and a searched title then streams through CVH |
 | `__tests__/providers.kodik.test.ts` | Kodik mapping from captured payloads (material → model, seasons → episodes, translations, derived qualities) and provider behaviour: search, episode/voiceover resolution, token error → `AUTHENTICATION_REQUIRED`, rate limit, malformed payload, network failure, missing material, no fabricated stream, health probe, and merged search with Kodik unauthenticated |

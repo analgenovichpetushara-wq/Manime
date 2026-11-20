@@ -37,23 +37,38 @@ Open player API, no credentials — verified live on 2026-10-04:
   `CVH_QUALITY_HEIGHTS`.
 
 **There is no title search** — probed live: `GET …/player/sv/search?query=naruto`
-answers `404 page not found`. Discovery instead comes from a source that
-publishes CVH links: AniLibria's `external_player` (see below). When that field
-holds a `/cdn-iframe/<id>/…` url, the mapper reuses the id as a CVH
-`providerRef`, so a title found by AniLibria search is played natively through
-CVH's open API — episodes, dubs, qualities and HLS, no scraping involved.
-A pasted link or `cvh:<id>` still works on its own: the search screen detects it
-and shows an explicit *Open in the CVH player* action.
+answers `404 page not found`. The playlist id is the number the release has in
+Shikimori/MAL, verified live: `id=51019` → «Истребитель демонов: Деревня
+кузнецов», `id=55701` → «…Тренировка столпов», `id=30276` → «Ванпанчмен».
+
+`src/services/cvhLinkService.ts` therefore resolves an id without any user input:
+
+1. a mapping the user stored (see below) or a `cvh` ref already on the title;
+2. AniLibria search → a release whose `external_player` holds a
+   `/cdn-iframe/<id>/…` url (the id is stated by the link itself);
+3. the Shikimori id of the title — from its own refs, from the matched AniLibria
+   release, or from Shikimori's own search API (`/animes?search=…`).
+
+Names are matched by `src/providers/matching/titleMatch.ts` (ru/en/original
+names, year ±1, season/part, format) with a 0.82 gate, and a candidate id is
+**only** accepted once its playlist answers with the same title
+(`titleName` similarity ≥ 0.5). Anything uncertain resolves to `null`, and the
+title dialog then offers a link field; a pasted `/cdn-iframe/…` url, bare id or
+`cvh:<id>` is persisted in `animalc:cvh-mappings:state`. The search screen still
+detects a pasted CVH link and shows an explicit *Open in the CVH player* action.
+
+CVH publishes no release type, so its streams carry
+`release: { edition: 'UNKNOWN', resolution, source: 'cdnvideohub' }` with a note
+saying so — 1080p is never presented as Blu-ray.
 
 The playlist holds every episode once per dub, so the episode list keeps one
 entry per episode and the dubs live behind the voiceover switch
 (`getAvailableVoiceovers()` + `voiceoverId` on `getStream()`); a dub missing for
-a given episode falls back to one that exists instead of failing playback. A media item is addressed by the publisher's id,
-which lives on the site embedding the player; discovering ids by name would mean
-scraping that site, which AnimAlc does not do. Instead `parseCvhReference()`
-accepts what a user can paste — a `/cdn-iframe/<id>/<season>/<episode>?dubbing=…`
-url, a bare numeric id, or `cvh:<id>` — and `searchTitles()` resolves it
-directly, so pasting a CVH link in the search field plays it.
+a given episode falls back to one that exists instead of failing playback.
+`parseCvhReference()` still accepts what a user can paste — a
+`/cdn-iframe/<id>/<season>/<episode>?dubbing=…` url, a bare numeric id, or
+`cvh:<id>` — and `searchTitles()` resolves it directly, so pasting a CVH link in
+the search field plays it. No id is ever constructed from a title name.
 
 CDN links are signed, IP-bound and short-lived, so they are fetched right
 before playback and the resulting bundle carries an `expiresAt` (~3 min).

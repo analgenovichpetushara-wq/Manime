@@ -95,16 +95,35 @@ export interface Voiceover {
   authors?: string[];
 }
 
+export type ReleaseEdition = 'TV' | 'BLURAY' | 'BLURAY_REMUX' | 'WEB_DL' | 'OTHER' | 'UNKNOWN';
+
+/**
+ * What a rendition actually is. `edition` is only set to a concrete value when
+ * the source states it; a 1080p encode is not evidence of a Blu-ray, so sources
+ * that publish no release type stay `UNKNOWN`.
+ */
+export interface ReleaseInfo {
+  edition: ReleaseEdition;
+  resolution?: number;
+  source?: string;
+  language?: string;
+  voiceover?: string;
+  releaseId?: string;
+  note?: string;
+}
+
 export interface QualityVariant {
   id: string;
   label: string;
   height?: number;
   kind: StreamKind;
+  release?: ReleaseInfo;
 }
 
 export interface StreamSource {
   id: string;
   providerId: string;
+  release?: ReleaseInfo;
   titleId: string;
   episodeId: string;
   voiceoverId?: string;

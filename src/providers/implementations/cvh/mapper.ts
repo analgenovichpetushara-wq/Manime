@@ -145,6 +145,14 @@ export function mapStreams(titleId: string, episode: Episode, video: CvhVideoRes
       label: 'HLS',
       qualityId: 'hls',
       isDefault: true,
+      release: {
+        edition: 'UNKNOWN',
+        source: 'cdnvideohub',
+        language: 'ru',
+        voiceover: episode.voiceoverRefId,
+        releaseId: episode.refId,
+        note: 'CdnVideoHub does not publish a release type',
+      },
     });
   }
 
@@ -165,6 +173,15 @@ export function mapStreams(titleId: string, episode: Episode, video: CvhVideoRes
       height,
       qualityId: String(height),
       isDefault: false,
+      release: {
+        edition: 'UNKNOWN',
+        resolution: height,
+        source: 'cdnvideohub',
+        language: 'ru',
+        voiceover: episode.voiceoverRefId,
+        releaseId: episode.refId,
+        note: 'CdnVideoHub does not publish a release type',
+      },
     });
   });
 
@@ -177,5 +194,6 @@ export function mapQualities(sources: StreamSource[]): QualityVariant[] {
     label: source.label,
     height: source.height,
     kind: source.kind,
+    release: source.release,
   }));
 }

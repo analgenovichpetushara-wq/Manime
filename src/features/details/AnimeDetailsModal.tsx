@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/ui/AppText';
@@ -19,6 +19,7 @@ import { syncAchievements } from '@/services/achievementService';
 import type { AnimeTitle, Episode, Voiceover } from '@/data/models/anime';
 import { formatDurationMinutes } from '@/core/utils/time';
 import { SkeletonRow } from '@/ui/StateViews';
+import { asCvhTitle, attachCvhReference, resolveCvhId, type CvhResolution } from '@/services/cvhLinkService';
 
 type Tab = 'overview' | 'episodes';
 
@@ -52,6 +53,29 @@ function AnimeDetailsBody({ activeTitle }: { activeTitle: AnimeTitle | null }) {
   const [tab, setTab] = useState<Tab>('overview');
   const [loading, setLoading] = useState(Boolean(activeTitle));
   const [error, setError] = useState<string | null>(null);
+  const [cvh, setCvh] = useState<CvhResolution | null>(null);
+  const [cvhBusy, setCvhBusy] = useState(false);
+  const [cvhInput, setCvhInput] = useState('');
+
+  const findCvh = useCallback(
+    async (title: AnimeTitle, lookup: boolean) => {
+      setCvhBusy(true);
+      try {
+        setCvh(await resolveCvhId(title, { lookup }));
+      } catch {
+        setCvh(null);
+      } finally {
+        setCvhBusy(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!detail) return;
+    const timer = setTimeout(() => void findCvh(detail, false), 0);
+    return () => clearTimeout(timer);
+  }, [detail, findCvh]);
 
   const isFavorite = useMemo(
     () => (detail ? listsState.entries[detail.id]?.categories.includes('favorites') ?? false : false),
@@ -204,7 +228,75 @@ function AnimeDetailsBody({ activeTitle }: { activeTitle: AnimeTitle | null }) {
       </View>
 
       <View style={styles.tabsRow}>
-        {(['overview', 'episodes'] as Tab[]).map((item) => (
+        <View style={[styles.cvhBox, { backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.shapes.radius.md, borderColor: theme.colors.cardBorder }]}>
+        <AppText variant="sm" weight="700">
+          {t('details.cvh.title')}
+        </AppText>
+        {cvh ? (
+          <>
+            <AppText variant="xs" tone="muted">
+              {t('details.cvh.found', { id: cvh.cvhId, origin: t(`details.cvh.origin.${cvh.origin}`) })}
+            </AppText>
+            <Button
+              testID="cvh-watch"
+              label={t('details.cvh.watch')}
+              variant="secondary"
+              icon={<Ionicons name="play" size={16} color={theme.colors.text} />}
+              onPress={() => {
+                closeTitle();
+                navigation.navigate('Player', { title: asCvhTitle(detail!, cvh), providerId: 'cvh' });
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <AppText variant="xs" tone="muted">
+              {cvhBusy ? t('details.cvh.searching') : t('details.cvh.notFound')}
+            </AppText>
+            <Button
+              testID="cvh-find"
+              label={t('details.cvh.find')}
+              variant="secondary"
+              disabled={cvhBusy || !detail}
+              icon={<Ionicons name="search" size={16} color={theme.colors.text} />}
+              onPress={() => {
+                if (detail) void findCvh(detail, true);
+              }}
+            />
+            <View style={styles.cvhRow}>
+              <TextInput
+                testID="cvh-link-input"
+                value={cvhInput}
+                onChangeText={setCvhInput}
+                placeholder={t('details.cvh.placeholder')}
+                placeholderTextColor={theme.colors.textMuted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={[styles.cvhInput, { color: theme.colors.text, borderColor: theme.colors.cardBorder }]}
+              />
+              <Button
+                testID="cvh-link-save"
+                label={t('details.cvh.save')}
+                variant="secondary"
+                disabled={!cvhInput.trim() || !detail}
+                onPress={() => {
+                  if (!detail) return;
+                  const saved = attachCvhReference(detail, cvhInput);
+                  if (!saved) {
+                    showToast({ titleKey: 'details.cvh.invalid', tone: 'danger' });
+                    return;
+                  }
+                  setCvh(saved);
+                  setCvhInput('');
+                  showToast({ titleKey: 'details.cvh.saved', tone: 'accent' });
+                }}
+              />
+            </View>
+          </>
+        )}
+      </View>
+
+      {(['overview', 'episodes'] as Tab[]).map((item) => (
           <Pressable key={item} onPress={() => setTab(item)} style={styles.tabButton} accessibilityRole="button">
             <AppText variant="sm" weight={tab === item ? '700' : '400'} tone={tab === item ? 'primary' : 'muted'}>
               {item === 'overview' ? t('details.description') : t('details.episodes')}
@@ -340,6 +432,9 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   matureBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4 },
+  cvhBox: { gap: 8, borderWidth: 1, padding: 12, marginTop: 12 },
+  cvhRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  cvhInput: { flex: 1, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, fontSize: 13 },
   actionsRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   primaryAction: { minWidth: 150 },
   tabsRow: { flexDirection: 'row', gap: 20, marginTop: 6 },

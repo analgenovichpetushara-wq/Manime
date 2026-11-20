@@ -2,6 +2,7 @@ import type { AnimeTitle, Episode, QualityVariant, StreamSource, Voiceover } fro
 import { titleKey, NO_CAPABILITIES } from '@/data/models/anime';
 import { anilibriaApi, absoluteMediaUrl } from '@/providers/implementations/anilibria/api';
 import { CVH_ID, parseCvhReference } from '@/providers/implementations/cvh/api';
+import { SHIKIMORI_ID } from '@/providers/implementations/shikimori/mapper';
 import type { AnilibriaEpisode, AnilibriaMember, AnilibriaRelease } from '@/providers/implementations/anilibria/types';
 
 export const ANILIBRIA_ID = 'anilibria';
@@ -68,12 +69,13 @@ export function mapRelease(release: AnilibriaRelease): AnimeTitle {
       genres.some((genre) => MATURE_GENRES.includes(genre.toLowerCase())),
     hasRussianVoice: true,
     updatedAt: release.updated_at ? Date.parse(release.updated_at) : undefined,
-    providerRefs: external.cvhId
-      ? [
-          { providerId: ANILIBRIA_ID, refId: String(release.id) },
-          { providerId: CVH_ID, refId: external.cvhId },
-        ]
-      : [{ providerId: ANILIBRIA_ID, refId: String(release.id) }],
+    providerRefs: [
+      { providerId: ANILIBRIA_ID, refId: String(release.id) },
+      // AniLibria reports which Shikimori entry the release is; the ref keeps
+      // that link for metadata enrichment and for media id lookups.
+      ...(Number.isFinite(release.shikimori?.id) ? [{ providerId: SHIKIMORI_ID, refId: String(release.shikimori?.id) }] : []),
+      ...(external.cvhId ? [{ providerId: CVH_ID, refId: external.cvhId }] : []),
+    ],
     externalPlayerUrl: external.url,
     capabilities: CAPABILITIES,
   };

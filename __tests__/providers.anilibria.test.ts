@@ -23,7 +23,10 @@ describe('Anilibria provider mapping', () => {
     expect(title.isMature).toBe(false);
     expect(title.hasRussianVoice).toBe(true);
     expect(title.capabilities.streams).toBe(true);
-    expect(title.providerRefs).toEqual([{ providerId: 'anilibria', refId: '16605' }]);
+    expect(title.providerRefs).toEqual([
+      { providerId: 'anilibria', refId: '16605' },
+      { providerId: 'shikimori', refId: '12345' },
+    ]);
   });
 
   it('flags mature releases without stripping their metadata', () => {
@@ -176,13 +179,17 @@ describe('external player links published by AniLibria', () => {
       'https://aniqit.com/serial/47963/bc6d1015fa55949863a13500100c56d8/720p?translations=false',
     );
     // A player page is not a media url: no CVH ref is invented from it.
-    expect(title.providerRefs).toEqual([{ providerId: 'anilibria', refId: '16605' }]);
+    expect(title.providerRefs).toEqual([
+      { providerId: 'anilibria', refId: '16605' },
+      { providerId: 'shikimori', refId: '12345' },
+    ]);
   });
 
   it('reuses a CdnVideoHub link as a CVH ref so the title plays natively', () => {
     const title = mapRelease(cvhExternal as never);
     expect(title.providerRefs).toEqual([
       { providerId: 'anilibria', refId: '16607' },
+      { providerId: 'shikimori', refId: '12345' },
       { providerId: 'cvh', refId: '51019' },
     ]);
     expect(title.externalPlayerUrl).toContain('https://animego.org/');
